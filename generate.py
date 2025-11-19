@@ -111,6 +111,7 @@ def main():
         "depends_on",
         "healthcheck",
         "ports",
+        "shm_size",
     )
 
     def capitalize_name(name: str) -> str:
