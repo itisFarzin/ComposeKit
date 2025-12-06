@@ -1,4 +1,5 @@
 name: update compose files
+run-name: update compose files
 
 on:
   workflow_dispatch:

@@ -1,4 +1,5 @@
 name: update images
+run-name: update images
 
 on:
   workflow_dispatch:
