@@ -38,6 +38,23 @@ class Config:
         )
 
 
+MOUNTOPTIONS = {
+    "rw",
+    "ro",
+    "nocopy",
+    "z",
+    "Z",
+    "delegated",
+    "cached",
+    "readonly",
+    "rshared",
+    "rslave",
+    "private",
+    "rprivate",
+    "slave",
+}
+
+
 def main():
     config = Config()
 
@@ -130,7 +147,7 @@ def main():
                                     or (
                                         len(split_volume) == 2
                                         and split_volume[-1].split(";")[0]
-                                        in {"ro", "rw"}
+                                        in MOUNTOPTIONS
                                     )
                                 )
                             ),
@@ -144,12 +161,9 @@ def main():
                             volume, cname = volume.split(";")
 
                         parts = volume.rsplit(":")
-                        suffix = (
-                            parts[-1] if parts[-1] in {"ro", "rw"} else None
+                        mount_option = (
+                            parts.pop() if parts[-1] in MOUNTOPTIONS else None
                         )
-
-                        if suffix:
-                            parts = parts[:-1]
 
                         if len(parts) == 1:
                             _path = f"{bind_path}/{folder}"
@@ -168,8 +182,8 @@ def main():
 
                             parts = [_path, parts[0]]
 
-                        if suffix:
-                            parts.append(suffix)
+                        if mount_option:
+                            parts.append(mount_option)
 
                         used_volumes.append(parts[0].rsplit("/")[-1])
                         _value.append(":".join(parts))
