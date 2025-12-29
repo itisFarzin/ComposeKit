@@ -129,7 +129,8 @@ def main():
                                     len(split_volume) == 1
                                     or (
                                         len(split_volume) == 2
-                                        and split_volume[-1] in {"ro", "rw"}
+                                        and split_volume[-1].split(";")[0]
+                                        in {"ro", "rw"}
                                     )
                                 )
                             ),
