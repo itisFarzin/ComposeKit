@@ -4,25 +4,19 @@ import os
 import re
 import sys
 import logging
-import importlib.util
 from pathlib import Path
 
-packages = {
-    "git": "GitPython",
-    "yaml": "PyYAML",
-    "requests": "requests",
-    "packaging": "packaging",
-}
-for package, package_name in packages.items():
-    if importlib.util.find_spec(package) is None:
-        print(f"ERROR: install the '{package_name}' package.")
-        exit(1)
-
-import yaml  # noqa: E402
-import requests  # noqa: E402
-from git import Repo  # noqa: E402
-from packaging.version import Version, InvalidVersion  # noqa: E402
-
+try:
+    import yaml
+    import requests
+    from git import Repo
+    from packaging.version import Version, InvalidVersion
+except ImportError:
+    print(
+        "ERROR: Missing the required package(s). Install them via:"
+        "\npip install -r requirements.txt"
+    )
+    exit(1)
 
 logging.basicConfig(
     stream=sys.stdout, format="%(levelname)s: %(message)s", level=logging.INFO
