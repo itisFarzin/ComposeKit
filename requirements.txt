@@ -1,4 +1,4 @@
 GitPython==3.1.45
 PyYAML==6.0.2
-requests==2.32.5
+httpx==0.28.1
 packaging==25.0

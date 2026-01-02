@@ -8,7 +8,7 @@ from pathlib import Path
 
 try:
     import yaml
-    import requests
+    import httpx
     from git import Repo
     from packaging.version import Version, InvalidVersion
 except ImportError:
@@ -21,6 +21,7 @@ except ImportError:
 logging.basicConfig(
     stream=sys.stdout, format="%(levelname)s: %(message)s", level=logging.INFO
 )
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 class Config:
@@ -147,7 +148,7 @@ def main():
 
         if registry == "docker.io":
             user = "library" if user == "_" else user
-            result: dict[str, str | dict] = requests.get(
+            result: dict[str, str | dict] = httpx.get(
                 f"https://hub.docker.com/v2/namespaces/{user}/repositories/"
                 f"{image}/tags?page_size={page_size}"
             ).json()
@@ -156,7 +157,7 @@ def main():
                 version["name"] for version in result.get("results", {})
             ]
         elif registry == "ghcr.io":
-            token_request: dict = requests.get(
+            token_request: dict = httpx.get(
                 f"https://ghcr.io/token?scope=repository:{user}/{image}:pull",
                 auth=(
                     (data["user"], data["pat"])
@@ -170,7 +171,7 @@ def main():
                 )
                 return
 
-            result: dict[str, str | list] = requests.get(
+            result: dict[str, str | list] = httpx.get(
                 f"https://ghcr.io/v2/{user}/{image}/tags/list",
                 headers={"Authorization": f"Bearer {token}"},
             ).json()
