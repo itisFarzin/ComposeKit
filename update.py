@@ -163,7 +163,12 @@ def main():
             ]
         elif registry == "ghcr.io":
             token_request: dict = requests.get(
-                f"https://ghcr.io/token?scope=repository:{user}/{image}:pull"
+                f"https://ghcr.io/token?scope=repository:{user}/{image}:pull",
+                auth=(
+                    (data["user"], data["pat"])
+                    if data.get("user") and data.get("pat")
+                    else None
+                ),
             ).json()
             if not (token := token_request.get("token")):
                 logging.warning(
@@ -175,6 +180,12 @@ def main():
                 f"https://ghcr.io/v2/{user}/{image}/tags/list",
                 headers={"Authorization": f"Bearer {token}"},
             ).json()
+            if result.get("errors"):
+                logging.warning(
+                    f'{full_image}: {result["errors"][0]["message"]}'
+                )
+                return
+
             versions = result["tags"]
 
         if not versions:
