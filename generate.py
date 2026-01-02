@@ -7,7 +7,10 @@ from pathlib import Path
 try:
     import yaml
 except ImportError:
-    print("ERROR: install the 'pyyaml' package.")
+    print(
+        "ERROR: Missing the required package(s). Install them via:"
+        "\npip install -r requirements.txt"
+    )
     exit(1)
 
 
