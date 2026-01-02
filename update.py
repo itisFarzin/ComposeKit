@@ -37,8 +37,13 @@ class Config:
     }
 
     def __init__(self):
-        with open("config/update.yaml", "r") as file:
-            self._config = yaml.safe_load(file)
+        self._config = {}
+        self._load_config("config/update.yaml")
+        self._load_config("config/update.private.yaml")
+
+    def _load_config(self, file_path: str):
+        with open(file_path, "r") as file:
+            self._config.update(yaml.safe_load(file) or {})
 
     def get(self, key: str):
         return (
