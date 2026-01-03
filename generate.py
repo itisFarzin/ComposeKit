@@ -41,7 +41,27 @@ class Config:
         )
 
 
-MOUNTOPTIONS = {
+OPTIONS = (
+    "network",
+    "working_dir",
+    "command",
+    "network_mode",
+    "user",
+    "entrypoint",
+    "cap_add",
+    "cap_drop",
+    "sysctls",
+    "labels",
+    "devices",
+    "volumes",
+    "environment",
+    "depends_on",
+    "healthcheck",
+    "ports",
+    "shm_size",
+)
+
+MOUNT_OPTIONS = {
     "rw",
     "ro",
     "nocopy",
@@ -58,6 +78,96 @@ MOUNTOPTIONS = {
 }
 
 
+def capitalize_name(name: str) -> str:
+    return name[0].upper() + name[1:]
+
+
+def generate(name: str, container: dict[str, str | list], config: Config):
+    folder = container.get("folder", name)
+    if config.get("capitalize_folder_name"):
+        folder = capitalize_name(folder)
+
+    restart_policy: str = config.get("restart_policy")
+    use_full_directory: bool = str(
+        config.get("use_full_directory")
+    ).lower() in {"true", "1"}
+    bind_path: str = config.get("bind_path")
+    network: str = config.get("network_name")
+
+    used_volumes = []
+    result = {
+        "image": container["image"],
+        "hostname": name,
+        "container_name": name,
+        "restart": container.get("restart", restart_policy),
+    }
+
+    for option in OPTIONS:
+        if value := container.get(option):
+            _value = []
+            if option == "devices":
+                for device in value:
+                    parts = device.rsplit(":")
+                    if len(parts) == 1:
+                        parts.append(parts[0])
+
+                    _value.append(":".join(parts))
+            elif option == "volumes":
+                custom_binds = list(
+                    filter(
+                        lambda volume: (
+                            (split_volume := volume.split(":"))
+                            and (
+                                len(split_volume) == 1
+                                or (
+                                    len(split_volume) == 2
+                                    and split_volume[-1].split(";")[0]
+                                    in MOUNT_OPTIONS
+                                )
+                            )
+                        ),
+                        value,
+                    )
+                )
+
+                for volume in value:
+                    cname = ""
+                    if ";" in volume:
+                        volume, cname = volume.split(";")
+
+                    parts = volume.rsplit(":")
+                    mount_option = (
+                        parts.pop() if parts[-1] in MOUNT_OPTIONS else None
+                    )
+
+                    if len(parts) == 1:
+                        _path = f"{bind_path}/{folder}"
+                        _volume = cname or parts[0].rsplit("/")[-1]
+
+                        if _volume in used_volumes:
+                            _volume = (
+                                f"{_volume}"
+                                f"{used_volumes.count(_volume) + 1}"
+                            )
+
+                        if not (use_full_directory and len(custom_binds) == 1):
+                            _path += f"/{_volume}"
+
+                        parts = [_path, parts[0]]
+
+                    if mount_option:
+                        parts.append(mount_option)
+
+                    used_volumes.append(parts[0].rsplit("/")[-1])
+                    _value.append(":".join(parts))
+            result[option] = _value or value
+
+    if "network_mode" not in container:
+        result["networks"] = [network]
+
+    return result
+
+
 def main():
     config = Config()
 
@@ -67,11 +177,6 @@ def main():
     network_driver: str = config.get("network_driver")
     subnet: str = config.get("subnet")
     gateway: str = subnet.rsplit(".", 1)[0] + ".1"
-    restart_policy: str = config.get("restart_policy")
-    use_full_directory: bool = str(
-        config.get("use_full_directory")
-    ).lower() in {"true", "1"}
-    bind_path: str = config.get("bind_path")
     output: str = config.get("output")
 
     main_template = yaml.safe_load(
@@ -93,110 +198,6 @@ def main():
         shutil.rmtree(composes_folder)
 
     os.mkdir(composes_folder)
-
-    options = (
-        "network",
-        "working_dir",
-        "command",
-        "network_mode",
-        "user",
-        "entrypoint",
-        "cap_add",
-        "cap_drop",
-        "sysctls",
-        "labels",
-        "devices",
-        "volumes",
-        "environment",
-        "depends_on",
-        "healthcheck",
-        "ports",
-        "shm_size",
-    )
-
-    def capitalize_name(name: str) -> str:
-        return name[0].upper() + name[1:]
-
-    def generate(container: dict[str, str | list]):
-        name = container.get("name", path.stem)
-        folder = container.get("folder", name)
-        if config.get("capitalize_folder_name"):
-            folder = capitalize_name(folder)
-
-        used_volumes = []
-        result = {
-            "image": container["image"],
-            "hostname": name,
-            "container_name": name,
-            "restart": container.get("restart", restart_policy),
-        }
-
-        for option in options:
-            if value := container.get(option):
-                _value = []
-                if option == "devices":
-                    for device in value:
-                        parts = device.rsplit(":")
-                        if len(parts) == 1:
-                            parts.append(parts[0])
-
-                        _value.append(":".join(parts))
-                elif option == "volumes":
-                    custom_binds = list(
-                        filter(
-                            lambda volume: (
-                                (split_volume := volume.split(":"))
-                                and (
-                                    len(split_volume) == 1
-                                    or (
-                                        len(split_volume) == 2
-                                        and split_volume[-1].split(";")[0]
-                                        in MOUNTOPTIONS
-                                    )
-                                )
-                            ),
-                            value,
-                        )
-                    )
-
-                    for volume in value:
-                        cname = ""
-                        if ";" in volume:
-                            volume, cname = volume.split(";")
-
-                        parts = volume.rsplit(":")
-                        mount_option = (
-                            parts.pop() if parts[-1] in MOUNTOPTIONS else None
-                        )
-
-                        if len(parts) == 1:
-                            _path = f"{bind_path}/{folder}"
-                            _volume = cname or parts[0].rsplit("/")[-1]
-
-                            if _volume in used_volumes:
-                                _volume = (
-                                    f"{_volume}"
-                                    f"{used_volumes.count(_volume) + 1}"
-                                )
-
-                            if not (
-                                use_full_directory and len(custom_binds) == 1
-                            ):
-                                _path += f"/{_volume}"
-
-                            parts = [_path, parts[0]]
-
-                        if mount_option:
-                            parts.append(mount_option)
-
-                        used_volumes.append(parts[0].rsplit("/")[-1])
-                        _value.append(":".join(parts))
-                result[option] = _value or value
-
-        if "network_mode" not in container:
-            result["networks"] = [network]
-
-        return result
 
     for path in sorted(
         list(Path(containers_folder).glob("*.yaml"))
@@ -223,7 +224,7 @@ def main():
                     container["folder"] += number
 
             used_names.append(name)
-            service["services"][name] = generate(container)
+            service["services"][name] = generate(name, container, config)
             main_template["services"][name] = yaml.safe_load(
                 composes_template.format(
                     name=name, path=composes_folder + "/" + path.name
