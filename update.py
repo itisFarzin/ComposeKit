@@ -4,6 +4,7 @@ import os
 import re
 import sys
 import logging
+import asyncio
 from pathlib import Path
 
 try:
@@ -74,16 +75,21 @@ def parse_version(version: str | None):
         return None
 
 
-def main():
+async def main():
     config = Config()
     repo = Repo(".")
     # Discard any changes
     repo.git.reset("--hard")
+    git_lock = asyncio.Lock()
 
     containers_folder: str = config.get("containers_folder")
     page_size = int(config.get("page_size"))
 
-    def update(container: dict[str, str | list], page_size: int):
+    async def update(
+        container: dict[str, str | list],
+        page_size: int,
+        client: httpx.AsyncClient,
+    ):
         image = container["image"]
         registry = None
 
@@ -145,33 +151,36 @@ def main():
 
         if registry in ("docker.io", None):
             user = "library" if user == "_" else user
-            result: dict[str, str | dict] = httpx.get(
+            request = await client.get(
                 f"https://hub.docker.com/v2/namespaces/{user}/repositories/"
                 f"{image}/tags?page_size={page_size}"
-            ).json()
+            )
+            result = request.json()
 
             versions = [
                 version["name"] for version in result.get("results", {})
             ]
         elif registry == "ghcr.io":
-            token_request: dict = httpx.get(
+            request = await client.get(
                 f"https://ghcr.io/token?scope=repository:{user}/{image}:pull",
                 auth=(
                     (container["user"], container["pat"])
                     if container.get("user") and container.get("pat")
                     else None
                 ),
-            ).json()
-            if not (token := token_request.get("token")):
+            )
+            result = request.json()
+            if not (token := result.get("token")):
                 logging.warning(
-                    f'{full_image}: {token_request["errors"][0]["message"]}'
+                    f'{full_image}: {result["errors"][0]["message"]}'
                 )
                 return
 
-            result: dict[str, str | list] = httpx.get(
+            request = await client.get(
                 f"https://ghcr.io/v2/{user}/{image}/tags/list",
                 headers={"Authorization": f"Bearer {token}"},
-            ).json()
+            )
+            result = request.json()
             if result.get("errors"):
                 logging.warning(
                     f'{full_image}: {result["errors"][0]["message"]}'
@@ -202,34 +211,39 @@ def main():
         container["image"] = f"{full_image}:{newest_version}"
         return full_image, image, newest_version
 
-        # TODO: Support other registries.
-
-    for path in sorted(
-        list(Path(containers_folder).glob("*.yaml"))
-        + list(Path(containers_folder).glob("*.yml"))
-    ):
+    async def process_file(path, client):
         with open(path, "r") as file:
             containers: list[dict[str, str | list]] = list(
                 yaml.safe_load_all(file)
             )
 
         for container in containers:
-            if not (result := update(container, page_size)):
+            if not (result := await update(container, page_size, client)):
                 continue
 
             full_image, image, newest_version = result
-            with open(path, "w") as file:
-                yaml.dump_all(containers, file, sort_keys=False)
 
-            repo.index.add([path])
-            repo.git.commit(
-                "-m",
-                f"refactor({path.stem}):"
-                f" update {image} to {newest_version}",
-            )
+            async with git_lock:
+                with open(path, "w") as file:
+                    yaml.dump_all(containers, file, sort_keys=False)
+
+                repo.index.add([str(path)])
+                repo.git.commit(
+                    "-m",
+                    f"refactor({path.stem}):"
+                    f" update {image} to {newest_version}",
+                )
 
             logging.info(f"Updated {full_image} to {newest_version}.")
 
+    paths = sorted(
+        list(Path(containers_folder).glob("*.yaml"))
+        + list(Path(containers_folder).glob("*.yml"))
+    )
+
+    async with httpx.AsyncClient() as client:
+        await asyncio.gather(*[process_file(path, client) for path in paths])
+
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
