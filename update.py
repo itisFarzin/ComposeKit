@@ -85,7 +85,7 @@ def main():
 
     def update(container: dict[str, str | list], page_size: int):
         image = container["image"]
-        registry = "docker.io"
+        registry = None
 
         if len(parts := image.split(":")) != 2:
             logging.info(f"Image {image} is invalid.")
@@ -113,28 +113,26 @@ def main():
             # Skip the invalid image formats
             return
 
-        full_image = "/".join(
-            [registry, image] if user == "_" else [registry, user, image]
-        )
+        full_image = "/".join(filter(None, [registry, user, image]))
 
-        data = next(
+        container = next(
             (
-                config.get(item)
+                _data
                 for item in [
                     full_image,
                     f"{user}/{image}",
                     image,
                 ]
-                if item in config._config
+                if (_data := config.get(item))
             ),
             {},
         )
 
-        if data.get("update") is False:
+        if container.get("update") is False:
             logging.info(f"Update for image {full_image} is disabled.")
             return
 
-        version_regex = data.get("version_regex")
+        version_regex = container.get("version_regex")
 
         if not (
             current_version := parse_version(
@@ -149,7 +147,7 @@ def main():
 
         versions = None
 
-        if registry == "docker.io":
+        if registry in ("docker.io", None):
             user = "library" if user == "_" else user
             result: dict[str, str | dict] = httpx.get(
                 f"https://hub.docker.com/v2/namespaces/{user}/repositories/"
@@ -163,8 +161,8 @@ def main():
             token_request: dict = httpx.get(
                 f"https://ghcr.io/token?scope=repository:{user}/{image}:pull",
                 auth=(
-                    (data["user"], data["pat"])
-                    if data.get("user") and data.get("pat")
+                    (container["user"], container["pat"])
+                    if container.get("user") and container.get("pat")
                     else None
                 ),
             ).json()
