@@ -47,7 +47,7 @@ class Config:
         return (
             os.getenv(key.upper())
             or self._config.get(key.lower())
-            or self.default_values.get(key)
+            or self.default_values.get(key.lower())
         )
 
 
