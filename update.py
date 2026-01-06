@@ -105,7 +105,7 @@ def main():
             image = parts2[0]
             user = "_"
         else:
-            logging.info(f"Image {image} is invalid.")
+            logging.warning(f"Image {image} is invalid.")
             # Skip the invalid image formats
             return
 
