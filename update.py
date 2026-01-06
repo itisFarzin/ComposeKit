@@ -88,11 +88,7 @@ def main():
         registry = None
 
         if len(parts := image.split(":")) != 2:
-            logging.info(f"Image {image} is invalid.")
-            # If an image doesn't specify a version, Docker will append the
-            # latest tag by default.
-            # This also skip the invalid image formats (e.g. double column)
-            return
+            parts.append("latest")
 
         image, version = parts
 
