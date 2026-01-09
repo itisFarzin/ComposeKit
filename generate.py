@@ -54,6 +54,7 @@ OPTIONS = (
     "labels",
     "devices",
     "volumes",
+    "tmpfs",
     "environment",
     "depends_on",
     "healthcheck",
