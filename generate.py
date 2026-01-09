@@ -6,6 +6,7 @@ from pathlib import Path
 
 try:
     import yaml
+    from git import Repo
 except ImportError:
     print(
         "ERROR: Missing the required package(s). Install them via:"
@@ -170,6 +171,10 @@ def generate(name: str, container: dict[str, str | list], config: Config):
 
 
 def main():
+    repo = Repo(".")
+    # Discard any changes
+    repo.index.reset(working_tree=True)
+
     config = Config()
 
     containers_folder: str = config.get("containers_folder")
@@ -237,6 +242,10 @@ def main():
 
     with open(output, "w") as file:
         yaml.dump(main_template, file, sort_keys=False)
+
+    repo.git.add(".")
+    staged_count = len(repo.index.diff(repo.head.commit))
+    repo.index.commit(f"refactor: update {staged_count} compose file(s)")
 
 
 if __name__ == "__main__":
