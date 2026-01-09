@@ -27,6 +27,11 @@ jobs:
         run: |
           pip install --disable-pip-version-check -r requirements.txt
 
+      - name: Set Git Credentials
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Run Python script
         run: python generate.py
         env:
@@ -38,11 +43,6 @@ jobs:
           BIND_PATH: ${{ vars.BIND_PATH }}
           OUTPUT: ${{ vars.OUTPUT }}
 
-      - name: Commit changes
+      - name: Push changes
         run: |
-          git config --local user.name "github-actions[bot]"
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
-          staged_count=$(git diff --name-only --cached | wc -l | tr -d '[:space:]')
-          git commit -m "refactor: update $staged_count compose file(s)" || echo "No changes to commit"
           git push
