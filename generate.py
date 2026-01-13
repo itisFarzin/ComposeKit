@@ -245,7 +245,8 @@ def main():
 
     repo.git.add(".")
     staged_count = len(repo.index.diff(repo.head.commit))
-    repo.index.commit(f"refactor: update {staged_count} compose file(s)")
+    if staged_count > 0:
+        repo.index.commit(f"refactor: update {staged_count} compose file(s)")
 
 
 if __name__ == "__main__":
