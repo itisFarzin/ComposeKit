@@ -84,15 +84,25 @@ def capitalize_name(name: str) -> str:
     return name[0].upper() + name[1:]
 
 
+def is_valid_volume(volume: str):
+    parts = volume.split(":")
+    if len(parts) == 1:
+        return True
+
+    if len(parts) == 2:
+        mount_type = parts[1].split(";")[0]
+        return mount_type in MOUNT_OPTIONS
+
+    return False
+
+
 def generate(name: str, container: dict[str, str | list], config: Config):
     folder = container.get("folder", name)
     if config.get("capitalize_folder_name"):
         folder = capitalize_name(folder)
 
     restart_policy: str = config.get("restart_policy")
-    use_full_directory: bool = str(
-        config.get("use_full_directory")
-    ).lower() in {"true", "1"}
+    use_full_directory: bool = config.get("use_full_directory")
     bind_path: str = config.get("bind_path")
     network: str = config.get("network_name")
 
@@ -106,36 +116,22 @@ def generate(name: str, container: dict[str, str | list], config: Config):
 
     for option in OPTIONS:
         if value := container.get(option):
-            _value = []
+            custom_value = []
             if option == "devices":
                 for device in value:
                     parts = device.rsplit(":")
-                    if len(parts) == 1:
-                        parts.append(parts[0])
+                    if len(parts) != 1:
+                        continue
 
-                    _value.append(":".join(parts))
+                    # Duplicate the device path
+                    custom_value.append(":".join(parts * 2))
             elif option == "volumes":
-                custom_binds = list(
-                    filter(
-                        lambda volume: (
-                            (split_volume := volume.split(":"))
-                            and (
-                                len(split_volume) == 1
-                                or (
-                                    len(split_volume) == 2
-                                    and split_volume[-1].split(";")[0]
-                                    in MOUNT_OPTIONS
-                                )
-                            )
-                        ),
-                        value,
-                    )
-                )
+                custom_binds = list(filter(is_valid_volume, value))
 
                 for volume in value:
                     cname = ""
                     if ";" in volume:
-                        volume, cname = volume.split(";")
+                        volume, cname = volume.split(";", 1)
 
                     parts = volume.rsplit(":")
                     mount_option = (
@@ -143,26 +139,25 @@ def generate(name: str, container: dict[str, str | list], config: Config):
                     )
 
                     if len(parts) == 1:
-                        _path = f"{bind_path}/{folder}"
-                        _volume = cname or parts[0].rsplit("/")[-1]
-
-                        if _volume in used_volumes:
-                            _volume = (
-                                f"{_volume}"
-                                f"{used_volumes.count(_volume) + 1}"
+                        custom_path = f"{bind_path}/{folder}"
+                        volume_name = cname or parts[0].rsplit("/", 1)[-1]
+                        if volume_name in used_volumes:
+                            volume_name += str(
+                                used_volumes.count(volume_name) + 1
                             )
 
-                        if not (use_full_directory and len(custom_binds) == 1):
-                            _path += f"/{_volume}"
+                        if not use_full_directory or len(custom_binds) != 1:
+                            custom_path += f"/{volume_name}"
 
-                        parts = [_path, parts[0]]
+                        parts = [custom_path, parts[0]]
 
                     if mount_option:
                         parts.append(mount_option)
 
-                    used_volumes.append(parts[0].rsplit("/")[-1])
-                    _value.append(":".join(parts))
-            result[option] = _value or value
+                    used_volumes.append(parts[0].rsplit("/", 1)[-1])
+                    custom_value.append(":".join(parts))
+
+            result[option] = custom_value or value
 
     if "network_mode" not in container:
         result["networks"] = [network]
