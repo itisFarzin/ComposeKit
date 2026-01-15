@@ -208,7 +208,6 @@ async def main():
         if not newest_version:
             return
 
-        container["image"] = f"{full_image}:{newest_version}"
         return full_image, image, newest_version
 
     async def process_file(path, client):
@@ -222,6 +221,7 @@ async def main():
                 continue
 
             full_image, image, newest_version = result
+            container["image"] = f"{full_image}:{newest_version}"
 
             async with git_lock:
                 with open(path, "w") as file:
