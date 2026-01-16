@@ -79,7 +79,7 @@ async def main():
     config = Config()
     repo = Repo(".")
     # Discard any changes
-    repo.git.reset("--hard")
+    repo.index.reset(working_tree=True)
     git_lock = asyncio.Lock()
 
     containers_folder: str = config.get("containers_folder")
@@ -227,11 +227,10 @@ async def main():
                 with open(path, "w") as file:
                     yaml.dump_all(containers, file, sort_keys=False)
 
-                repo.index.add([str(path)])
-                repo.git.commit(
-                    "-m",
+                repo.index.add(path)
+                repo.index.commit(
                     f"refactor({path.stem}):"
-                    f" update {image} to {newest_version}",
+                    f" update {image} to {newest_version}"
                 )
 
             logging.info(f"Updated {full_image} to {newest_version}.")
