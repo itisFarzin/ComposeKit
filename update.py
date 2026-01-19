@@ -5,6 +5,7 @@ import re
 import sys
 import logging
 import asyncio
+from typing import Any
 from pathlib import Path
 
 try:
@@ -26,29 +27,30 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 class Config:
-    _config: dict[str, str | int | list]
-    default_values = {
+    config: dict[str, str | int | list]
+    config_paths = ["config/update.yaml", "config/update.private.yaml"]
+    default_values: dict[str, str | int | bool] = {
         "containers_folder": "containers",
         "page_size": 40,
     }
 
     def __init__(self):
-        self._config = {}
-        self._load_config("config/update.yaml")
-        self._load_config("config/update.private.yaml")
+        self.config = {}
+        for config_path in self.config_paths:
+            self._load_config(config_path)
 
     def _load_config(self, file_path: str):
         if not os.path.exists(file_path):
             return
 
         with open(file_path, "r") as file:
-            self._config.update(yaml.safe_load(file) or {})
+            self.config.update(yaml.safe_load(file) or {})
 
-    def get(self, key: str):
+    def __getitem__(self, key: str) -> Any:
         return (
             os.getenv(key.upper())
-            or self._config.get(key.lower())
-            or self.default_values.get(key.lower())
+            or self.config.get(key.lower())
+            or self.default_values.get(key)
         )
 
 
@@ -82,15 +84,15 @@ async def main():
     repo.index.reset(working_tree=True)
     git_lock = asyncio.Lock()
 
-    containers_folder: str = config.get("containers_folder")
-    page_size = int(config.get("page_size"))
+    containers_folder = str(config["containers_folder"])
+    page_size = int(config["page_size"])
 
     async def update(
-        container: dict[str, str | list],
+        container: dict[str, Any],
         page_size: int,
         client: httpx.AsyncClient,
     ):
-        image = container["image"]
+        image = str(container["image"])
         registry = None
 
         if len(parts := image.split(":")) != 2:
@@ -125,7 +127,7 @@ async def main():
                     f"{user}/{image}",
                     image,
                 ]
-                if (_data := config.get(item))
+                if (_data := config[item]) and isinstance(_data, dict)
             ),
             {},
         )
@@ -134,7 +136,7 @@ async def main():
             logging.info(f"Update for image {full_image} is disabled.")
             return
 
-        version_regex = container.get("version_regex")
+        version_regex = str(container.get("version_regex"))
 
         if not (
             current_version := parse_version(
@@ -164,7 +166,7 @@ async def main():
             request = await client.get(
                 f"https://ghcr.io/token?scope=repository:{user}/{image}:pull",
                 auth=(
-                    (container["user"], container["pat"])
+                    (str(container["user"]), str(container["pat"]))
                     if container.get("user") and container.get("pat")
                     else None
                 ),
