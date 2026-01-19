@@ -2,6 +2,7 @@
 
 import os
 import shutil
+from typing import Any
 from pathlib import Path
 
 try:
@@ -15,9 +16,10 @@ except ImportError:
     exit(1)
 
 
-class Config:
+class Config(dict):
     config: dict[str, str | int | list]
-    default_values = {
+    config_path = "config/generate.yaml"
+    default_values: dict[str, str | int | bool] = {
         "containers_folder": "containers",
         "composes_folder": "composes",
         "network_name": "cloud",
@@ -31,10 +33,10 @@ class Config:
     }
 
     def __init__(self):
-        with open("config/generate.yaml", "r") as file:
+        with open(self.config_path, "r") as file:
             self.config = yaml.safe_load(file)
 
-    def get(self, key: str):
+    def __getitem__(self, key: str) -> Any:
         return (
             os.getenv(key.upper())
             or self.config.get(key.lower())
@@ -97,14 +99,14 @@ def is_valid_volume(volume: str):
 
 
 def generate(name: str, container: dict[str, str | list], config: Config):
-    folder = container.get("folder", name)
-    if config.get("capitalize_folder_name"):
+    folder = str(container.get("folder", name))
+    if config["capitalize_folder_name"]:
         folder = capitalize_name(folder)
 
-    restart_policy: str = config.get("restart_policy")
-    use_full_directory: bool = config.get("use_full_directory")
-    bind_path: str = config.get("bind_path")
-    network: str = config.get("network_name")
+    restart_policy = str(config["restart_policy"])
+    use_full_directory = bool(config["use_full_directory"])
+    bind_path = str(config["bind_path"])
+    network = str(config["network_name"])
 
     used_volumes = []
     result = {
@@ -172,13 +174,13 @@ def main():
 
     config = Config()
 
-    containers_folder: str = config.get("containers_folder")
-    composes_folder: str = config.get("composes_folder")
-    network: str = config.get("network_name")
-    network_driver: str = config.get("network_driver")
-    subnet: str = config.get("subnet")
-    gateway: str = subnet.rsplit(".", 1)[0] + ".1"
-    output: str = config.get("output")
+    containers_folder = str(config["containers_folder"])
+    composes_folder = str(config["composes_folder"])
+    network = str(config["network_name"])
+    network_driver = str(config["network_driver"])
+    subnet = str(config["subnet"])
+    gateway = subnet.rsplit(".", 1)[0] + ".1"
+    output = str(config["output"])
 
     main_template = yaml.safe_load(
         open("templates/main-compose.yaml")
@@ -217,7 +219,7 @@ def main():
             )
 
         for container in containers:
-            name = container.get("name", path.stem)
+            name = str(container.get("name", path.stem))
             if name in used_names:
                 number = str(used_names.count(name) + 1)
                 container["name"] = name = f"{name}_{number}"
