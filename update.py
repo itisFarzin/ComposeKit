@@ -65,6 +65,31 @@ def extract_version(version: str, pattern: str | None) -> str | None:
     return None
 
 
+def parse_image(image: str):
+    registry = None
+    user = "_"
+    version_segments = image.split(":")
+    version = version_segments.pop() if len(version_segments) > 1 else "latest"
+    image = version_segments[0]
+    image_segments = image.split("/")
+
+    if len(image_segments) == 1:
+        image = image_segments[0]
+    elif len(image_segments) == 2:
+        part, image = image_segments
+        if "." in part:
+            registry = part
+        else:
+            user = part
+    elif len(image_segments) == 3:
+        registry, user, image = image_segments
+    else:
+        logging.warning(f"Image {image} is invalid.")
+        return None
+
+    return registry, user, image, version
+
+
 def parse_version(version: str | None):
     if not version:
         return None
@@ -92,31 +117,10 @@ async def main():
         page_size: int,
         client: httpx.AsyncClient,
     ):
-        image = str(container["image"])
-        registry = None
-
-        if len(parts := image.split(":")) != 2:
-            parts.append("latest")
-
-        image, version = parts
-
-        if len(parts2 := image.split("/")) == 3:
-            registry, user, image = parts2
-        elif len(parts2) == 2:
-            _var, image = parts2
-            if "." in _var:
-                registry = _var
-                user = "_"
-            else:
-                user = _var
-        elif len(parts2) == 1:
-            image = parts2[0]
-            user = "_"
-        else:
-            logging.warning(f"Image {image} is invalid.")
-            # Skip the invalid image formats
+        if not (result := parse_image(str(container["image"]))):
             return
 
+        registry, user, image, version = result
         full_image = "/".join(filter(None, [registry, user, image]))
 
         container = next(
