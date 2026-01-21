@@ -136,7 +136,7 @@ async def main():
             logging.info(f"Update for image {full_image} is disabled.")
             return
 
-        version_regex = str(container.get("version_regex"))
+        version_regex = container.get("version_regex")
 
         if not (
             current_version := parse_version(
