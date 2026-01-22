@@ -7,6 +7,12 @@ import logging
 import asyncio
 from typing import Any
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import httpx
+    from git import Repo
+
 
 try:
     import yaml
@@ -102,6 +108,136 @@ def parse_version(version: str | None):
         return None
 
 
+async def update(
+    config: Config,
+    container: dict[str, Any],
+    client: httpx.AsyncClient,
+):
+    if not (result := parse_image(str(container["image"]))):
+        return
+
+    registry, user, image, version = result
+    full_image = "/".join(filter(None, [registry, user, image]))
+    page_size = int(config["page_size"])
+
+    container = next(
+        (
+            _data
+            for item in [
+                full_image,
+                f"{user}/{image}",
+                image,
+            ]
+            if (_data := config[item]) and isinstance(_data, dict)
+        ),
+        {},
+    )
+
+    if container.get("update") is False:
+        logging.info(f"Update for image {full_image} is disabled.")
+        return
+
+    version_regex = container.get("version_regex")
+
+    if not (
+        current_version := parse_version(
+            extract_version(version, version_regex)
+        )
+    ):
+        logging.warning(
+            "Could not parse a comparable version from '{}' for image {}."
+            " Skipping.".format(version, full_image)
+        )
+        return
+
+    versions = None
+
+    if registry in ("docker.io", None):
+        user = "library" if user == "_" else user
+        request = await client.get(
+            f"https://hub.docker.com/v2/namespaces/{user}/repositories/"
+            f"{image}/tags?page_size={page_size}"
+        )
+        result = request.json()
+
+        versions = [version["name"] for version in result.get("results", [])]
+    elif registry == "ghcr.io":
+        request = await client.get(
+            f"https://ghcr.io/token?scope=repository:{user}/{image}:pull",
+            auth=(
+                (str(container["user"]), str(container["pat"]))
+                if container.get("user") and container.get("pat")
+                else None
+            ),
+        )
+        result = request.json()
+        if not (token := result.get("token")):
+            logging.warning(f'{full_image}: {result["errors"][0]["message"]}')
+            return
+
+        request = await client.get(
+            f"https://ghcr.io/v2/{user}/{image}/tags/list",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        result = request.json()
+        if result.get("errors"):
+            logging.warning(f'{full_image}: {result["errors"][0]["message"]}')
+            return
+
+        versions = result["tags"]
+
+    if not versions:
+        return
+
+    versions = [
+        (v, version)
+        for version in versions
+        if (v := parse_version(extract_version(version, version_regex)))
+        and v > current_version
+    ]
+
+    if not versions:
+        return
+
+    newest_version = max(versions, key=lambda p: p[0], default=(None, None))[1]
+    if not newest_version:
+        return
+
+    return full_image, image, newest_version
+
+
+async def process_file(
+    path: Path,
+    client: httpx.AsyncClient,
+    config: Config,
+    repo: Repo,
+    git_lock: asyncio.Lock,
+):
+    with open(path, "r") as file:
+        containers: list[dict[str, str | list]] = list(
+            yaml.safe_load_all(file)
+        )
+
+    for container in containers:
+        if not (result := await update(config, container, client)):
+            continue
+
+        full_image, image, newest_version = result
+        container["image"] = f"{full_image}:{newest_version}"
+
+        async with git_lock:
+            with open(path, "w") as file:
+                yaml.dump_all(containers, file, sort_keys=False)
+
+            repo.index.add(path)
+            repo.index.commit(
+                f"refactor({path.stem}):"
+                f" update {image} to {newest_version}"
+            )
+
+        logging.info(f"Updated {full_image} to {newest_version}.")
+
+
 async def main():
     config = Config()
     repo = Repo(".")
@@ -110,144 +246,20 @@ async def main():
     git_lock = asyncio.Lock()
 
     containers_folder = str(config["containers_folder"])
-    page_size = int(config["page_size"])
 
-    async def update(
-        container: dict[str, Any],
-        page_size: int,
-        client: httpx.AsyncClient,
-    ):
-        if not (result := parse_image(str(container["image"]))):
-            return
-
-        registry, user, image, version = result
-        full_image = "/".join(filter(None, [registry, user, image]))
-
-        container = next(
-            (
-                _data
-                for item in [
-                    full_image,
-                    f"{user}/{image}",
-                    image,
-                ]
-                if (_data := config[item]) and isinstance(_data, dict)
-            ),
-            {},
-        )
-
-        if container.get("update") is False:
-            logging.info(f"Update for image {full_image} is disabled.")
-            return
-
-        version_regex = container.get("version_regex")
-
-        if not (
-            current_version := parse_version(
-                extract_version(version, version_regex)
-            )
-        ):
-            logging.warning(
-                "Could not parse a comparable version from '{}' for image {}."
-                " Skipping.".format(version, full_image)
-            )
-            return
-
-        versions = None
-
-        if registry in ("docker.io", None):
-            user = "library" if user == "_" else user
-            request = await client.get(
-                f"https://hub.docker.com/v2/namespaces/{user}/repositories/"
-                f"{image}/tags?page_size={page_size}"
-            )
-            result = request.json()
-
-            versions = [
-                version["name"] for version in result.get("results", {})
-            ]
-        elif registry == "ghcr.io":
-            request = await client.get(
-                f"https://ghcr.io/token?scope=repository:{user}/{image}:pull",
-                auth=(
-                    (str(container["user"]), str(container["pat"]))
-                    if container.get("user") and container.get("pat")
-                    else None
-                ),
-            )
-            result = request.json()
-            if not (token := result.get("token")):
-                logging.warning(
-                    f'{full_image}: {result["errors"][0]["message"]}'
-                )
-                return
-
-            request = await client.get(
-                f"https://ghcr.io/v2/{user}/{image}/tags/list",
-                headers={"Authorization": f"Bearer {token}"},
-            )
-            result = request.json()
-            if result.get("errors"):
-                logging.warning(
-                    f'{full_image}: {result["errors"][0]["message"]}'
-                )
-                return
-
-            versions = result["tags"]
-
-        if not versions:
-            return
-
-        versions = [
-            (v, version)
-            for version in versions
-            if (v := parse_version(extract_version(version, version_regex)))
-            and v > current_version
-        ]
-
-        if not versions:
-            return
-
-        newest_version = max(
-            versions, key=lambda p: p[0], default=(None, None)
-        )[1]
-        if not newest_version:
-            return
-
-        return full_image, image, newest_version
-
-    async def process_file(path, client):
-        with open(path, "r") as file:
-            containers: list[dict[str, str | list]] = list(
-                yaml.safe_load_all(file)
-            )
-
-        for container in containers:
-            if not (result := await update(container, page_size, client)):
-                continue
-
-            full_image, image, newest_version = result
-            container["image"] = f"{full_image}:{newest_version}"
-
-            async with git_lock:
-                with open(path, "w") as file:
-                    yaml.dump_all(containers, file, sort_keys=False)
-
-                repo.index.add(path)
-                repo.index.commit(
-                    f"refactor({path.stem}):"
-                    f" update {image} to {newest_version}"
-                )
-
-            logging.info(f"Updated {full_image} to {newest_version}.")
-
-    paths = sorted(
-        list(Path(containers_folder).glob("*.yaml"))
-        + list(Path(containers_folder).glob("*.yml"))
+    paths = (
+        p
+        for p in Path(containers_folder).iterdir()
+        if p.is_file() and p.suffix in {".yml", ".yaml"}
     )
 
     async with httpx.AsyncClient() as client:
-        await asyncio.gather(*[process_file(path, client) for path in paths])
+        await asyncio.gather(
+            *(
+                process_file(path, client, config, repo, git_lock)
+                for path in paths
+            )
+        )
 
 
 if __name__ == "__main__":
