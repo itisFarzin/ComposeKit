@@ -38,6 +38,7 @@ class Config:
     default_values: dict[str, str | int | bool] = {
         "containers_folder": "containers",
         "page_size": 40,
+        "timeout": 10,
     }
 
     def __init__(self):
@@ -253,7 +254,7 @@ async def main():
         if p.is_file() and p.suffix in {".yml", ".yaml"}
     )
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=int(config["timeout"])) as client:
         await asyncio.gather(
             *(
                 process_file(path, client, config, repo, git_lock)
