@@ -7,6 +7,7 @@ import logging
 import asyncio
 from typing import Any
 from pathlib import Path
+from operator import itemgetter
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -109,6 +110,56 @@ def parse_version(version: str | None):
         return None
 
 
+async def find_versions(
+    config: Config,
+    container: dict[str, Any],
+    client: httpx.AsyncClient,
+    registry: str | None,
+    user: str | None,
+    image: str,
+):
+    page_size = int(config["page_size"])
+    full_image = "/".join(filter(None, [registry, user, image]))
+
+    if registry in ("docker.io", None):
+        user = "library" if user == "_" else user
+        request = await client.get(
+            f"https://hub.docker.com/v2/namespaces/{user}/repositories/"
+            f"{image}/tags?page_size={page_size}"
+        )
+        result = request.json()
+
+        return list(map(itemgetter("name"), result.get("results", [])))
+    elif registry == "ghcr.io":
+        request = await client.get(
+            f"https://ghcr.io/token?scope=repository:{user}/{image}:pull",
+            auth=(
+                (str(container["user"]), str(container["pat"]))
+                if container.get("user") and container.get("pat")
+                else None
+            ),
+        )
+        result = request.json()
+        if not (token := result.get("token")):
+            logging.warning(f'{full_image}: {result["errors"][0]["message"]}')
+            return []
+
+        request = await client.get(
+            f"https://ghcr.io/v2/{user}/{image}/tags/list",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        result = request.json()
+        if result.get("errors"):
+            logging.warning(f'{full_image}: {result["errors"][0]["message"]}')
+            return []
+
+        return result["tags"]
+    else:
+        logging.warning(f"{full_image}: unsupported registry {registry}")
+
+    return []
+
+
 async def update(
     config: Config,
     container: dict[str, Any],
@@ -119,7 +170,6 @@ async def update(
 
     registry, user, image, version = result
     full_image = "/".join(filter(None, [registry, user, image]))
-    page_size = int(config["page_size"])
 
     container = next(
         (
@@ -151,43 +201,11 @@ async def update(
         )
         return
 
-    versions = None
-
-    if registry in ("docker.io", None):
-        user = "library" if user == "_" else user
-        request = await client.get(
-            f"https://hub.docker.com/v2/namespaces/{user}/repositories/"
-            f"{image}/tags?page_size={page_size}"
+    if not (
+        versions := await find_versions(
+            config, container, client, registry, user, image
         )
-        result = request.json()
-
-        versions = [version["name"] for version in result.get("results", [])]
-    elif registry == "ghcr.io":
-        request = await client.get(
-            f"https://ghcr.io/token?scope=repository:{user}/{image}:pull",
-            auth=(
-                (str(container["user"]), str(container["pat"]))
-                if container.get("user") and container.get("pat")
-                else None
-            ),
-        )
-        result = request.json()
-        if not (token := result.get("token")):
-            logging.warning(f'{full_image}: {result["errors"][0]["message"]}')
-            return
-
-        request = await client.get(
-            f"https://ghcr.io/v2/{user}/{image}/tags/list",
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        result = request.json()
-        if result.get("errors"):
-            logging.warning(f'{full_image}: {result["errors"][0]["message"]}')
-            return
-
-        versions = result["tags"]
-
-    if not versions:
+    ):
         return
 
     versions = [
