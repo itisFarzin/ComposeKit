@@ -98,14 +98,57 @@ def is_valid_volume(volume: str):
     return False
 
 
-def generate(name: str, container: dict[str, str | list], config: Config):
+def handle_volumes(
+    config: Config,
+    container: dict[str, str | list],
+    name: str,
+    volumes: list[str],
+    used_volumes: list[str],
+):
+    folder = str(container.get("folder", name))
+    if config["capitalize_folder_name"]:
+        folder = capitalize_name(folder)
+
+    bind_path = str(config["bind_path"])
+    use_full_directory = bool(config["use_full_directory"])
+    custom_binds = list(filter(is_valid_volume, volumes))
+    result = []
+
+    for volume in volumes:
+        custom_name = ""
+        if ";" in volume:
+            volume, custom_name = volume.split(";", 1)
+
+        parts = volume.rsplit(":")
+        mount_option = parts.pop() if parts[-1] in MOUNT_OPTIONS else None
+
+        if len(parts) == 1:
+            host_path = f"{bind_path}/{folder}"
+            volume_name = custom_name or parts[0].rsplit("/", 1)[-1]
+
+            if volume_name in used_volumes:
+                volume_name += str(used_volumes.count(volume_name) + 1)
+
+            if not use_full_directory or len(custom_binds) != 1:
+                host_path += f"/{volume_name}"
+
+            parts = [host_path, parts[0]]
+
+        if mount_option:
+            parts.append(mount_option)
+
+        used_volumes.append(parts[0].rsplit("/", 1)[-1])
+        result.append(":".join(parts))
+
+    return result
+
+
+def generate(name: str, container: dict[str, Any], config: Config):
     folder = str(container.get("folder", name))
     if config["capitalize_folder_name"]:
         folder = capitalize_name(folder)
 
     restart_policy = str(config["restart_policy"])
-    use_full_directory = bool(config["use_full_directory"])
-    bind_path = str(config["bind_path"])
     network = str(config["network_name"])
 
     used_volumes = []
@@ -118,48 +161,21 @@ def generate(name: str, container: dict[str, str | list], config: Config):
 
     for option in OPTIONS:
         if value := container.get(option):
-            custom_value = []
             if option == "devices":
+                result[option] = []
                 for device in value:
                     parts = device.rsplit(":")
                     if len(parts) != 1:
                         continue
 
                     # Duplicate the device path
-                    custom_value.append(":".join(parts * 2))
+                    result[option].append(":".join(parts * 2))
             elif option == "volumes":
-                custom_binds = list(filter(is_valid_volume, value))
-
-                for volume in value:
-                    cname = ""
-                    if ";" in volume:
-                        volume, cname = volume.split(";", 1)
-
-                    parts = volume.rsplit(":")
-                    mount_option = (
-                        parts.pop() if parts[-1] in MOUNT_OPTIONS else None
-                    )
-
-                    if len(parts) == 1:
-                        custom_path = f"{bind_path}/{folder}"
-                        volume_name = cname or parts[0].rsplit("/", 1)[-1]
-                        if volume_name in used_volumes:
-                            volume_name += str(
-                                used_volumes.count(volume_name) + 1
-                            )
-
-                        if not use_full_directory or len(custom_binds) != 1:
-                            custom_path += f"/{volume_name}"
-
-                        parts = [custom_path, parts[0]]
-
-                    if mount_option:
-                        parts.append(mount_option)
-
-                    used_volumes.append(parts[0].rsplit("/", 1)[-1])
-                    custom_value.append(":".join(parts))
-
-            result[option] = custom_value or value
+                result[option] = handle_volumes(
+                    config, container, name, value, used_volumes
+                )
+            else:
+                result[option] = value
 
     if "network_mode" not in container:
         result["networks"] = [network]
