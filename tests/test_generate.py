@@ -1,8 +1,8 @@
-from generate import Config, handle_volumes, is_valid_volume
+from generate import Config, is_custom_bind, handle_volumes
 
 
-def test_is_valid_volume():
-    result = is_valid_volume("/volume:rw;config")
+def test_is_custom_bind():
+    result = is_custom_bind("/volume:rw;config")
     assert result is True
 
 

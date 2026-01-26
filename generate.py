@@ -86,13 +86,13 @@ def capitalize_name(name: str) -> str:
     return name[0].upper() + name[1:]
 
 
-def is_valid_volume(volume: str):
-    parts = volume.split(":")
-    if len(parts) == 1:
+def is_custom_bind(volume: str):
+    volume_segments = volume.split(":")
+    if len(volume_segments) == 1:
         return True
 
-    if len(parts) == 2:
-        mount_type = parts[1].split(";")[0]
+    if len(volume_segments) == 2:
+        mount_type = volume_segments[1].split(";")[0]
         return mount_type in MOUNT_OPTIONS
 
     return False
@@ -100,7 +100,7 @@ def is_valid_volume(volume: str):
 
 def handle_volumes(
     config: Config,
-    container: dict[str, str | list],
+    container: dict[str, Any],
     name: str,
     volumes: list[str],
     used_volumes: list[str],
@@ -111,7 +111,7 @@ def handle_volumes(
 
     bind_path = str(config["bind_path"])
     use_full_directory = bool(config["use_full_directory"])
-    custom_binds = list(filter(is_valid_volume, volumes))
+    custom_binds = list(filter(is_custom_bind, volumes))
     result = []
 
     for volume in volumes:
@@ -119,12 +119,16 @@ def handle_volumes(
         if ";" in volume:
             volume, custom_name = volume.split(";", 1)
 
-        parts = volume.rsplit(":")
-        mount_option = parts.pop() if parts[-1] in MOUNT_OPTIONS else None
+        volume_segments = volume.rsplit(":")
+        mount_option = (
+            volume_segments.pop()
+            if volume_segments[-1] in MOUNT_OPTIONS
+            else None
+        )
 
-        if len(parts) == 1:
+        if len(volume_segments) == 1:
             host_path = f"{bind_path}/{folder}"
-            volume_name = custom_name or parts[0].rsplit("/", 1)[-1]
+            volume_name = custom_name or volume_segments[0].rsplit("/", 1)[-1]
 
             if volume_name in used_volumes:
                 volume_name += str(used_volumes.count(volume_name) + 1)
@@ -132,15 +136,22 @@ def handle_volumes(
             if not use_full_directory or len(custom_binds) != 1:
                 host_path += f"/{volume_name}"
 
-            parts = [host_path, parts[0]]
+            volume_segments = [host_path, volume_segments[0]]
 
         if mount_option:
-            parts.append(mount_option)
+            volume_segments.append(mount_option)
 
-        used_volumes.append(parts[0].rsplit("/", 1)[-1])
-        result.append(":".join(parts))
+        used_volumes.append(volume_segments[0].rsplit("/", 1)[-1])
+        result.append(":".join(volume_segments))
 
     return result
+
+
+def handle_devices(devices: list[str]):
+    return [
+        f"{device}:{device}" if ":" not in device else device
+        for device in devices
+    ]
 
 
 def generate(name: str, container: dict[str, Any], config: Config):
@@ -160,21 +171,19 @@ def generate(name: str, container: dict[str, Any], config: Config):
     }
 
     for option in OPTIONS:
-        if value := container.get(option):
-            if option == "devices":
-                result[option] = []
-                for device in value:
-                    parts = device.rsplit(":")
-                    if len(parts) != 1:
-                        continue
+        if option not in container:
+            continue
 
-                    # Duplicate the device path
-                    result[option].append(":".join(parts * 2))
-            elif option == "volumes":
+        value = container[option]
+
+        match option:
+            case "devices":
+                result[option] = handle_devices(value)
+            case "volumes":
                 result[option] = handle_volumes(
                     config, container, name, value, used_volumes
                 )
-            else:
+            case _:
                 result[option] = value
 
     if "network_mode" not in container:
@@ -218,10 +227,13 @@ def main():
 
     os.mkdir(composes_folder)
 
-    for path in sorted(
-        list(Path(containers_folder).glob("*.yaml"))
-        + list(Path(containers_folder).glob("*.yml"))
-    ):
+    paths = sorted(
+        p
+        for p in Path(containers_folder).iterdir()
+        if p.is_file() and p.suffix in {".yml", ".yaml"}
+    )
+
+    for path in paths:
         used_names = []
 
         service: dict[str, dict] = yaml.safe_load(
@@ -230,9 +242,7 @@ def main():
         service["services"] = {}
 
         with open(path, "r") as file:
-            containers: list[dict[str, str | list]] = list(
-                yaml.safe_load_all(file)
-            )
+            containers: list[dict[str, Any]] = list(yaml.safe_load_all(file))
 
         for container in containers:
             name = str(container.get("name", path.stem))
@@ -246,7 +256,7 @@ def main():
             service["services"][name] = generate(name, container, config)
             main_template["services"][name] = yaml.safe_load(
                 composes_template.format(
-                    name=name, path=composes_folder + "/" + path.name
+                    name=name, path=f"{composes_folder}/{path.name}"
                 )
             )
 
