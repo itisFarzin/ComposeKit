@@ -1,4 +1,5 @@
-from update import parse_image, extract_version
+import httpx
+from update import Config, parse_image, extract_version, find_versions
 
 
 def test_parse_image_ghcr():
@@ -21,7 +22,7 @@ def test_parse_image_codeberg():
     assert version == "0.21.5"
 
 
-def test_parse_image_b3log():
+def test_parse_image_siyuan():
     result = parse_image("b3log/siyuan:v3.5.2")
     assert result is not None
     registry, user, image, version = result
@@ -31,7 +32,7 @@ def test_parse_image_b3log():
     assert version == "v3.5.2"
 
 
-def test_parse_image_zoeyvid():
+def test_parse_image_npmplus():
     result = parse_image("zoeyvid/npmplus")
     assert result is not None
     registry, user, image, version = result
@@ -59,3 +60,16 @@ def test_extract_version():
 def test_extract_version_with_no_pattern():
     version = extract_version("v1.5.1", None)
     assert version == "v1.5.1"
+
+
+async def test_find_versions_siyuan():
+    config = Config()
+    container = {}
+    registry = None
+    user = "b3log"
+    image = "siyuan"
+    async with httpx.AsyncClient(timeout=int(config["timeout"])) as client:
+        result = await find_versions(
+            config, container, client, registry, user, image
+        )
+        assert len(result) > 0
