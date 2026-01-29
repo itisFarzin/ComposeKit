@@ -7,8 +7,8 @@ import logging
 import asyncio
 from typing import Any
 from pathlib import Path
-from operator import itemgetter
 from typing import TYPE_CHECKING
+from utils.oci_api import list_tags
 
 if TYPE_CHECKING:
     import httpx
@@ -38,7 +38,7 @@ class Config:
     config_paths = ["config/update.yaml", "config/update.private.yaml"]
     default_values: dict[str, str | int | bool] = {
         "containers_folder": "containers",
-        "page_size": 40,
+        "limit": 40,
         "timeout": 10,
     }
 
@@ -118,44 +118,23 @@ async def find_versions(
     user: str | None,
     image: str,
 ):
-    page_size = int(config["page_size"])
+    limit = int(config["limit"])
     full_image = "/".join(filter(None, [registry, user, image]))
 
-    if registry in ("docker.io", None):
+    try:
         user = "library" if user == "_" else user
-        request = await client.get(
-            f"https://hub.docker.com/v2/namespaces/{user}/repositories/"
-            f"{image}/tags?page_size={page_size}"
-        )
-        result = request.json()
+        if tags := await list_tags(
+            client,
+            registry,
+            f"{user}/{image}",
+            container.get("username"),
+            container.get("password"),
+        ):
+            return tags[-limit:]
 
-        return list(map(itemgetter("name"), result.get("results", [])))
-    elif registry == "ghcr.io":
-        request = await client.get(
-            f"https://ghcr.io/token?scope=repository:{user}/{image}:pull",
-            auth=(
-                (str(container["user"]), str(container["pat"]))
-                if container.get("user") and container.get("pat")
-                else None
-            ),
-        )
-        result = request.json()
-        if not (token := result.get("token")):
-            logging.warning(f'{full_image}: {result["errors"][0]["message"]}')
-            return []
-
-        request = await client.get(
-            f"https://ghcr.io/v2/{user}/{image}/tags/list",
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        result = request.json()
-        if result.get("errors"):
-            logging.warning(f'{full_image}: {result["errors"][0]["message"]}')
-            return []
-
-        return result["tags"]
-    else:
-        logging.warning(f"{full_image}: unsupported registry {registry}")
+        raise Exception("No tags found.")
+    except Exception as e:
+        logging.error(f"{full_image}: {e}")
 
     return []
 

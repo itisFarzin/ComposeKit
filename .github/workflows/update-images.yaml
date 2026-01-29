@@ -35,7 +35,7 @@ jobs:
         run: python update.py
         env:
           CONTAINERS_FOLDER: ${{ vars.CONTAINERS_FOLDER }}
-          PAGE_SIZE: ${{ vars.PAGE_SIZE }}
+          LIMIT: ${{ vars.LIMIT }}
 
       - name: Push changes
         run: |
