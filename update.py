@@ -92,7 +92,7 @@ def parse_image(image: str):
     elif len(image_segments) == 3:
         registry, user, image = image_segments
     else:
-        logging.warning(f"Image {image} is invalid.")
+        logging.warning(f"{image}: Image is invalid.")
         return None
 
     return registry, user, image, version
@@ -164,7 +164,7 @@ async def update(
     )
 
     if container.get("update") is False:
-        logging.info(f"Update for image {full_image} is disabled.")
+        logging.info(f"{full_image}: Update is disabled.")
         return
 
     version_regex = container.get("version_regex")
@@ -174,9 +174,8 @@ async def update(
             extract_version(version, version_regex)
         )
     ):
-        logging.warning(
-            "Could not parse a comparable version from '{}' for image {}."
-            " Skipping.".format(version, full_image)
+        logging.error(
+            f"{full_image}: Could not parse the version '{version}'."
         )
         return
 
@@ -233,7 +232,7 @@ async def process_file(
                 f" update {image} to {newest_version}"
             )
 
-        logging.info(f"Updated {full_image} to {newest_version}.")
+        logging.info(f"{full_image}: Updated to {newest_version}.")
 
 
 async def main():
