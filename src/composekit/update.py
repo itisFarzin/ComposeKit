@@ -3,12 +3,11 @@
 import os
 import re
 import sys
-import logging
 import asyncio
-from typing import Any
+import logging
 from pathlib import Path
-from typing import TYPE_CHECKING
-from utils.oci_api import list_tags
+from typing import TYPE_CHECKING, Any
+from composekit.utils.oci_api import list_tags
 
 if TYPE_CHECKING:
     import httpx
@@ -16,10 +15,10 @@ if TYPE_CHECKING:
 
 
 try:
-    import yaml
     import httpx
+    import yaml
     from git import Repo
-    from packaging.version import Version, InvalidVersion
+    from packaging.version import InvalidVersion, Version
 except ImportError:
     print(
         "ERROR: Missing the required package(s). Install them via:"
@@ -228,8 +227,7 @@ async def process_file(
 
             repo.index.add(path)
             repo.index.commit(
-                f"refactor({path.stem}):"
-                f" update {image} to {newest_version}"
+                f"refactor({path.stem}): update {image} to {newest_version}"
             )
 
         logging.info(f"{full_image}: Updated to {newest_version}.")

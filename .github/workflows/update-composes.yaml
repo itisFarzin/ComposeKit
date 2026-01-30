@@ -23,17 +23,16 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Install dependencies
-        run: |
-          pip install --disable-pip-version-check -r requirements.txt
-
       - name: Set Git Credentials
         run: |
           git config --local user.name "github-actions[bot]"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
 
+      - name: Install package
+        run: pip install -e .
+
       - name: Run Python script
-        run: python generate.py
+        run: python -m composekit.generate
         env:
           CONTAINERS_FOLDER: ${{ vars.CONTAINERS_FOLDER }}
           COMPOSES_FOLDER: ${{ vars.COMPOSES_FOLDER }}

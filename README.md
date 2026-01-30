@@ -1,10 +1,10 @@
-# DockerContainers
+# ComposeKit
 
-A small project to simplify Docker container management, made with love.
+A project to simplify Docker container management, made with love.
 
 There are two Python scripts:
 - generate.py: creates Docker Compose files
-- update.py: updates image tags inside those Compose files
+- update.py: updates Docker images
 
 Key points:
 - Generation rules: [config/generate.yaml](config/generate.yaml)

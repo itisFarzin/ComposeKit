@@ -1,4 +1,9 @@
-from generate import Config, is_custom_bind, handle_volumes, handle_devices
+from composekit.generate import (
+    Config,
+    is_custom_bind,
+    handle_volumes,
+    handle_devices,
+)
 
 
 def test_is_custom_bind():

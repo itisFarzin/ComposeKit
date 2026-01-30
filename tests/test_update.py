@@ -1,5 +1,10 @@
 import httpx
-from update import Config, parse_image, extract_version, find_versions
+from composekit.update import (
+    Config,
+    parse_image,
+    extract_version,
+    find_versions,
+)
 
 
 def test_parse_image_ghcr():
