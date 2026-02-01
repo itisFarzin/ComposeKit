@@ -7,7 +7,7 @@ async def list_tags(
     repo: str,
     username: str | None = None,
     password: str | None = None,
-):
+) -> list[str]:
     if not registry_host or registry_host == "docker.io":
         registry_host = "index.docker.io"
 
@@ -38,7 +38,7 @@ async def list_tags(
 
             realm = params.pop("realm", None)
             if not realm:
-                raise RuntimeError("WWW-Authenticate Bearer missing realm")
+                return []
 
             request = await client.get(realm, params=params, auth=auth)
             request.raise_for_status()
