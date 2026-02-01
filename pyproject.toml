@@ -6,3 +6,33 @@ testpaths = ["tests"]
 [tool.black]
 line-length = 79
 skip-string-normalization = false
+
+[tool.tox]
+requires = ["tox>=4.15"]
+env_list = ["lint", "type", "py314", "py313", "py312", "py311", "py310"]
+
+[tool.tox.env_run_base]
+description = "run unit tests"
+deps = [
+    "-rrequirements.txt",
+    "pytest>=8",
+    "pytest-sugar",
+    "pytest-asyncio",
+]
+commands = [["pytest"]]
+
+[tool.tox.env.lint]
+description = "run linters"
+skip_install = true
+deps = ["black"]
+commands = [["black", "."]]
+
+[tool.tox.env.type]
+description = "run type checks"
+skip_install = true
+deps = [
+    "-rrequirements.txt",
+    "mypy",
+    "types-PyYAML",
+]
+commands = [["mypy", "."]]
