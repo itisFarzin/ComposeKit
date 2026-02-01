@@ -16,8 +16,8 @@ except ImportError:
     exit(1)
 
 
-class Config(dict):
-    config: dict[str, str | int | list]
+class Config:
+    config: dict[str, Any]
     config_path = "config/generate.yaml"
     default_values: dict[str, str | int | bool] = {
         "containers_folder": "containers",
@@ -32,7 +32,7 @@ class Config(dict):
         "output": "docker-compose.yaml",
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         with open(self.config_path, "r") as file:
             self.config = yaml.safe_load(file)
 
@@ -86,7 +86,7 @@ def capitalize_name(name: str) -> str:
     return name[0].upper() + name[1:]
 
 
-def is_custom_bind(volume: str):
+def is_custom_bind(volume: str) -> bool:
     volume_segments = volume.split(":")
     if len(volume_segments) == 1:
         return True
@@ -104,7 +104,7 @@ def handle_volumes(
     name: str,
     volumes: list[str],
     used_volumes: list[str],
-):
+) -> list[str]:
     folder = str(container.get("folder", name))
     if config["capitalize_folder_name"]:
         folder = capitalize_name(folder)
@@ -147,14 +147,16 @@ def handle_volumes(
     return result
 
 
-def handle_devices(devices: list[str]):
+def handle_devices(devices: list[str]) -> list[str]:
     return [
         f"{device}:{device}" if ":" not in device else device
         for device in devices
     ]
 
 
-def generate(name: str, container: dict[str, Any], config: Config):
+def generate(
+    name: str, container: dict[str, Any], config: Config
+) -> dict[str, Any]:
     folder = str(container.get("folder", name))
     if config["capitalize_folder_name"]:
         folder = capitalize_name(folder)
@@ -236,7 +238,7 @@ def main() -> None:
     for path in paths:
         used_names: list[str] = []
 
-        service: dict[str, dict] = yaml.safe_load(
+        service: dict[str, dict[str, Any]] = yaml.safe_load(
             service_template.format(network=network)
         )
         service["services"] = {}
