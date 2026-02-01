@@ -7,6 +7,10 @@ testpaths = ["tests"]
 line-length = 79
 skip-string-normalization = false
 
+[tool.mypy]
+files = ["src", "tests"]
+strict = true
+
 [tool.tox]
 requires = ["tox>=4.15"]
 env_list = ["lint", "type", "py314", "py313", "py312", "py311", "py310"]
@@ -24,7 +28,7 @@ commands = [["black", "--check", "."]]
 
 [tool.tox.env.type]
 description = "run type checks"
-commands = [["mypy", "src"]]
+commands = [["mypy"]]
 
 [tool.poetry]
 name = "composekit"
