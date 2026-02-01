@@ -1,4 +1,5 @@
 import httpx
+from typing import Any
 from composekit.update import (
     Config,
     parse_image,
@@ -7,7 +8,7 @@ from composekit.update import (
 )
 
 
-def test_parse_image_ghcr():
+def test_parse_image_ghcr() -> None:
     result = parse_image("ghcr.io/kozea/radicale:3.5.10")
     assert result is not None
     registry, user, image, version = result
@@ -17,7 +18,7 @@ def test_parse_image_ghcr():
     assert version == "3.5.10"
 
 
-def test_parse_image_codeberg():
+def test_parse_image_codeberg() -> None:
     result = parse_image("codeberg.org/readeck/readeck:0.21.5")
     assert result is not None
     registry, user, image, version = result
@@ -27,7 +28,7 @@ def test_parse_image_codeberg():
     assert version == "0.21.5"
 
 
-def test_parse_image_siyuan():
+def test_parse_image_siyuan() -> None:
     result = parse_image("b3log/siyuan:v3.5.2")
     assert result is not None
     registry, user, image, version = result
@@ -37,7 +38,7 @@ def test_parse_image_siyuan():
     assert version == "v3.5.2"
 
 
-def test_parse_image_npmplus():
+def test_parse_image_npmplus() -> None:
     result = parse_image("zoeyvid/npmplus")
     assert result is not None
     registry, user, image, version = result
@@ -47,7 +48,7 @@ def test_parse_image_npmplus():
     assert version == "latest"
 
 
-def test_parse_image_nginx():
+def test_parse_image_nginx() -> None:
     result = parse_image("nginx")
     assert result is not None
     registry, user, image, version = result
@@ -57,19 +58,19 @@ def test_parse_image_nginx():
     assert version == "latest"
 
 
-def test_extract_version():
+def test_extract_version() -> None:
     version = extract_version("2026.1.20-410996df9", r"^(\d+\.\d+\.\d+)-\w+$")
     assert version == "2026.1.20"
 
 
-def test_extract_version_with_no_pattern():
+def test_extract_version_with_no_pattern() -> None:
     version = extract_version("v1.5.1", None)
     assert version == "v1.5.1"
 
 
-async def test_find_versions_siyuan():
+async def test_find_versions_siyuan() -> None:
     config = Config()
-    container = {}
+    container: dict[str, Any] = {}
     registry = None
     user = "b3log"
     image = "siyuan"

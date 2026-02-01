@@ -1,3 +1,4 @@
+from typing import Any
 from composekit.generate import (
     Config,
     is_custom_bind,
@@ -6,15 +7,15 @@ from composekit.generate import (
 )
 
 
-def test_is_custom_bind():
+def test_is_custom_bind() -> None:
     result = is_custom_bind("/volume:rw;config")
     assert result is True
 
 
-def test_handle_volumes():
+def test_handle_volumes() -> None:
     config = Config()
     volumes = ["/volume", "/volume2"]
-    container = {}
+    container: dict[str, Any] = {}
     result = handle_volumes(config, container, "container", volumes, [])
     assert result == [
         "${BIND_PATH}/container/volume:/volume",
@@ -22,26 +23,26 @@ def test_handle_volumes():
     ]
 
 
-def test_handle_volumes_with_custom_binds():
+def test_handle_volumes_with_custom_binds() -> None:
     config = Config()
     volumes = ["/volume:/volume", "/volume2:/volume2"]
-    container = {}
+    container: dict[str, Any] = {}
     result = handle_volumes(config, container, "container", volumes, [])
     assert result == ["/volume:/volume", "/volume2:/volume2"]
 
 
-def test_handle_volumes_with_custom_binds_and_mount_options():
+def test_handle_volumes_with_custom_binds_and_mount_options() -> None:
     config = Config()
     volumes = ["/volume:/volume:ro", "/volume2:/volume2:rw"]
-    container = {}
+    container: dict[str, Any] = {}
     result = handle_volumes(config, container, "container", volumes, [])
     assert result == ["/volume:/volume:ro", "/volume2:/volume2:rw"]
 
 
-def test_handle_volumes_with_mount_options_and_custom_name():
+def test_handle_volumes_with_mount_options_and_custom_name() -> None:
     config = Config()
     volumes = ["/volume:ro;config", "/volume2:rw;data"]
-    container = {}
+    container: dict[str, Any] = {}
     result = handle_volumes(config, container, "container", volumes, [])
     assert result == [
         "${BIND_PATH}/container/config:/volume:ro",
@@ -49,7 +50,7 @@ def test_handle_volumes_with_mount_options_and_custom_name():
     ]
 
 
-def test_handle_devices():
+def test_handle_devices() -> None:
     devices = ["/device", "/device2:/device2"]
     result = handle_devices(devices)
     assert result == ["/device:/device", "/device2:/device2"]
