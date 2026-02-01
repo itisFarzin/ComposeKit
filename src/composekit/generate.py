@@ -162,7 +162,7 @@ def generate(name: str, container: dict[str, Any], config: Config):
     restart_policy = str(config["restart_policy"])
     network = str(config["network_name"])
 
-    used_volumes = []
+    used_volumes: list[str] = []
     result = {
         "image": container["image"],
         "hostname": name,
@@ -192,7 +192,7 @@ def generate(name: str, container: dict[str, Any], config: Config):
     return result
 
 
-def main():
+def main() -> None:
     repo = Repo(".")
     # Discard any changes
     repo.index.reset(working_tree=True)
@@ -234,7 +234,7 @@ def main():
     )
 
     for path in paths:
-        used_names = []
+        used_names: list[str] = []
 
         service: dict[str, dict] = yaml.safe_load(
             service_template.format(network=network)
