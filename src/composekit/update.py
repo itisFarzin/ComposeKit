@@ -33,7 +33,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 class Config:
-    config: dict[str, str | int | list]
+    config: dict[str, Any]
     config_paths = ["config/update.yaml", "config/update.private.yaml"]
     default_values: dict[str, str | int | bool] = {
         "containers_folder": "containers",
@@ -41,12 +41,12 @@ class Config:
         "timeout": 10,
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.config = {}
         for config_path in self.config_paths:
             self._load_config(config_path)
 
-    def _load_config(self, file_path: str):
+    def _load_config(self, file_path: str) -> None:
         if not os.path.exists(file_path):
             return
 
@@ -72,7 +72,7 @@ def extract_version(version: str, pattern: str | None) -> str | None:
     return None
 
 
-def parse_image(image: str):
+def parse_image(image: str) -> tuple[str | None, str, str, str] | None:
     registry = None
     user = "_"
     version_segments = image.split(":")
@@ -97,7 +97,7 @@ def parse_image(image: str):
     return registry, user, image, version
 
 
-def parse_version(version: str | None):
+def parse_version(version: str | None) -> Version | None:
     if not version:
         return None
 
@@ -106,7 +106,9 @@ def parse_version(version: str | None):
         if not parsed_version.is_prerelease:
             return parsed_version
     except InvalidVersion:
-        return None
+        pass
+
+    return None
 
 
 async def find_versions(
@@ -116,7 +118,7 @@ async def find_versions(
     registry: str | None,
     user: str | None,
     image: str,
-):
+) -> list[str]:
     limit = int(config["limit"])
     full_image = "/".join(filter(None, [registry, user, image]))
 
@@ -142,9 +144,9 @@ async def update(
     config: Config,
     container: dict[str, Any],
     client: httpx.AsyncClient,
-):
+) -> tuple[str, str, str] | None:
     if not (result := parse_image(str(container["image"]))):
-        return
+        return None
 
     registry, user, image, version = result
     full_image = "/".join(filter(None, [registry, user, image]))
@@ -164,7 +166,7 @@ async def update(
 
     if container.get("update") is False:
         logging.info(f"{full_image}: Update is disabled.")
-        return
+        return None
 
     version_regex = container.get("version_regex")
 
@@ -176,28 +178,28 @@ async def update(
         logging.error(
             f"{full_image}: Could not parse the version '{version}'."
         )
-        return
+        return None
 
     if not (
-        versions := await find_versions(
+        raw_versions := await find_versions(
             config, container, client, registry, user, image
         )
     ):
-        return
+        return None
 
     versions = [
         (v, version)
-        for version in versions
+        for version in raw_versions
         if (v := parse_version(extract_version(version, version_regex)))
         and v > current_version
     ]
 
     if not versions:
-        return
+        return None
 
     newest_version = max(versions, key=lambda p: p[0], default=(None, None))[1]
     if not newest_version:
-        return
+        return None
 
     return full_image, image, newest_version
 
@@ -208,11 +210,9 @@ async def process_file(
     config: Config,
     repo: Repo,
     git_lock: asyncio.Lock,
-):
+) -> None:
     with open(path, "r") as file:
-        containers: list[dict[str, str | list]] = list(
-            yaml.safe_load_all(file)
-        )
+        containers: list[dict[str, Any]] = list(yaml.safe_load_all(file))
 
     for container in containers:
         if not (result := await update(config, container, client)):
@@ -233,7 +233,7 @@ async def process_file(
         logging.info(f"{full_image}: Updated to {newest_version}.")
 
 
-async def main():
+async def main() -> None:
     config = Config()
     repo = Repo(".")
     # Discard any changes
