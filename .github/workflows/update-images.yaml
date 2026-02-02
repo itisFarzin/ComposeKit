@@ -20,25 +20,32 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.13'
+          python-version: "3.13"
 
-      - name: Set Git Credentials
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Set Git credentials
         run: |
           git config --local user.name "github-actions[bot]"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Install poetry
-        run: pip install poetry
-
       - name: Install dependencies
-        run: poetry install --no-interaction
+        run: uv sync --locked --all-extras --dev
+
+      - name: Install project
+        run: uv pip install -e .
 
       - name: Run Python script
-        run: poetry run python -m composekit.update
+        run: uv run python -m composekit.update
         env:
           CONTAINERS_FOLDER: ${{ vars.CONTAINERS_FOLDER }}
-          LIMIT: ${{ vars.LIMIT }}
+          COMPOSES_FOLDER: ${{ vars.COMPOSES_FOLDER }}
+          NETWORK_NAME: ${{ vars.NETWORK_NAME }}
+          SUBNET: ${{ vars.SUBNET }}
+          USE_FULL_DIRECTORY: ${{ vars.USE_FULL_DIRECTORY }}
+          BIND_PATH: ${{ vars.BIND_PATH }}
+          OUTPUT: ${{ vars.OUTPUT }}
 
       - name: Push changes
-        run: |
-          git push
+        run: git push
