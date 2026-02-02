@@ -5,14 +5,9 @@ import re
 import sys
 import asyncio
 import logging
+from typing import Any
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
 from composekit.utils.oci_api import list_tags
-
-if TYPE_CHECKING:
-    import httpx
-    from git import Repo
-
 
 try:
     import httpx
