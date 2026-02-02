@@ -9,11 +9,7 @@ try:
     import yaml
     from git import Repo
 except ImportError:
-    print(
-        "ERROR: Missing the required package(s). Install them via:"
-        "\npip install -r requirements.txt"
-    )
-    exit(1)
+    raise RuntimeError("ERROR: Missing required packages. See the README.")
 
 
 class Config:

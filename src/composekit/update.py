@@ -20,11 +20,7 @@ try:
     from git import Repo
     from packaging.version import InvalidVersion, Version
 except ImportError:
-    print(
-        "ERROR: Missing the required package(s). Install them via:"
-        "\npip install -r requirements.txt"
-    )
-    exit(1)
+    raise RuntimeError("ERROR: Missing required packages. See the README.")
 
 logging.basicConfig(
     stream=sys.stdout, format="%(levelname)s: %(message)s", level=logging.INFO
