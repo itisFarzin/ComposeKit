@@ -15,23 +15,26 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v6
         with:
           python-version: '3.13'
 
       - name: Set Git Credentials
         run: |
-          git config --local user.name "gitea-actions"
-          git config --local user.email "gitea-actions@localhost"
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Install package
-        run: pip install -e .
+      - name: Install poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install --no-interaction
 
       - name: Run Python script
-        run: python -m composekit.update
+        run: poetry run python -m composekit.update
         env:
           CONTAINERS_FOLDER: ${{ vars.CONTAINERS_FOLDER }}
           LIMIT: ${{ vars.LIMIT }}
