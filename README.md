@@ -2,14 +2,33 @@
 
 A project to simplify Docker container management, made with love.
 
-There are two Python scripts:
-- generate.py: creates Docker Compose files
-- update.py: updates Docker images
+This project includes two commands:
+- generate: creates Docker Compose files
+- update: updates Docker images
 
 Key points:
 - Generation rules: [config/generate.yaml](config/generate.yaml)
 - Update rules: [config/update.yaml](config/update.yaml)
 - Compose files are produced automatically via GitHub Actions workflows
+
+## Running locally
+- [Install uv](https://docs.astral.sh/uv/getting-started/installation/)
+- Create a virtual env:
+```bash
+uv venv
+```
+- Install the package in editable mode:
+```bash
+uv pip install -e .
+```
+- And finally, run one of the commands based on your needs:
+```bash
+uv run python -m composekit.generate
+```
+- or
+```bash
+uv run python -m composekit.update
+```
 
 ## License
 
