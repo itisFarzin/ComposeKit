@@ -206,7 +206,7 @@ def main() -> None:
     output = str(config["output"])
 
     main_template = yaml.safe_load(
-        open("templates/main-compose.yaml")
+        open("src/composekit/templates/main-compose.yaml")
         .read()
         .lstrip()
         .format(
@@ -217,8 +217,12 @@ def main() -> None:
         )
     )
     main_template["services"] = {}
-    composes_template = open("templates/composes.yaml").read().lstrip()
-    service_template = open("templates/services.yaml").read().lstrip()
+    composes_template = (
+        open("src/composekit/templates/composes.yaml").read().lstrip()
+    )
+    service_template = (
+        open("src/composekit/templates/services.yaml").read().lstrip()
+    )
 
     if os.path.exists(composes_folder):
         shutil.rmtree(composes_folder)
