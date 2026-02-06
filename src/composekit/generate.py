@@ -55,6 +55,7 @@ OPTIONS = (
     "volumes",
     "tmpfs",
     "environment",
+    "group_add",
     "depends_on",
     "healthcheck",
     "ports",
