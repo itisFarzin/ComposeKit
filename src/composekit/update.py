@@ -218,7 +218,7 @@ async def process_file(
 
             repo.index.add(path)
             repo.index.commit(
-                f"refactor({path.stem}): update {image} to {newest_version}"
+                f"chore({path.stem}): update {image} to {newest_version}"
             )
 
         logging.info(f"{full_image}: Updated to {newest_version}.")

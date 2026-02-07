@@ -273,7 +273,7 @@ def main() -> None:
     staged_count = len(repo.index.diff(repo.head.commit))
     if staged_count > 0:
         repo.index.commit(
-            f"refactor(composes): update {staged_count} compose file(s)"
+            f"chore(composes): update {staged_count} compose file(s)"
         )
 
 
