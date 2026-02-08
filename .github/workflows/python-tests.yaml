@@ -6,6 +6,12 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   test:
     name: Test with Python ${{ matrix.python-version }}
+    if: >
+      !(
+        contains(toJson(github.event.commits), '[skip tests]') ||
+        contains(github.event.pull_request.title || '', '[skip tests]') ||
+        contains(github.event.pull_request.body || '', '[skip tests]')
+      )
     runs-on: ubuntu-latest
 
     strategy:
