@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   update:
+    name: update images
     runs-on: ubuntu-latest
     env:
       UV_CACHE_DIR: /tmp/.uv-cache
