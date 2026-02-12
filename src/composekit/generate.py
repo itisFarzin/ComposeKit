@@ -146,8 +146,7 @@ def handle_volumes(
 
 def duplicate_entries(entries: list[str]) -> list[str]:
     return [
-        f"{entry}:{entry}" if ":" not in entry else entry
-        for entry in entries
+        f"{entry}:{entry}" if ":" not in entry else entry for entry in entries
     ]
 
 
