@@ -144,10 +144,10 @@ def handle_volumes(
     return result
 
 
-def handle_devices(devices: list[str]) -> list[str]:
+def duplicate_entries(entries: list[str]) -> list[str]:
     return [
-        f"{device}:{device}" if ":" not in device else device
-        for device in devices
+        f"{entry}:{entry}" if ":" not in entry else entry
+        for entry in entries
     ]
 
 
@@ -177,7 +177,9 @@ def generate(
 
         match option:
             case "devices":
-                result[option] = handle_devices(value)
+                result[option] = duplicate_entries(value)
+            case "ports":
+                result[option] = duplicate_entries(value)
             case "volumes":
                 result[option] = handle_volumes(
                     config, container, name, value, used_volumes

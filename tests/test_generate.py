@@ -3,7 +3,7 @@ from composekit.generate import (
     Config,
     is_custom_bind,
     handle_volumes,
-    handle_devices,
+    duplicate_entries,
 )
 
 
@@ -50,7 +50,7 @@ def test_handle_volumes_with_mount_options_and_custom_name() -> None:
     ]
 
 
-def test_handle_devices() -> None:
+def test_duplicate_entries() -> None:
     devices = ["/device", "/device2:/device2"]
-    result = handle_devices(devices)
+    result = duplicate_entries(devices)
     assert result == ["/device:/device", "/device2:/device2"]
