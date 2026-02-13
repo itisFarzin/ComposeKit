@@ -62,7 +62,9 @@ def test_parse_image_invalid() -> None:
         ("no-match", r"\d+\.\d+\.\d+", None),
     ],
 )
-def test_extract_version(version_str: str, pattern: str | None, expected: str | None) -> None:
+def test_extract_version(
+    version_str: str, pattern: str | None, expected: str | None
+) -> None:
     assert extract_version(version_str, pattern) == expected
 
 
@@ -76,7 +78,9 @@ def test_extract_version(version_str: str, pattern: str | None, expected: str | 
         ("not-a-version", None),
     ],
 )
-def test_parse_version(version_str: str | None, expected: Version | None) -> None:
+def test_parse_version(
+    version_str: str | None, expected: Version | None
+) -> None:
     result = parse_version(version_str)
     if expected is None:
         assert result is None
