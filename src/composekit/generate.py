@@ -2,20 +2,22 @@
 
 import os
 import shutil
-from typing import Any
 from pathlib import Path
+from typing import Any, ClassVar
 
 try:
     import yaml
     from git import Repo
-except ImportError:
-    raise RuntimeError("ERROR: Missing required packages. See the README.")
+except ImportError as err:
+    raise RuntimeError(
+        "ERROR: Missing required packages. See the README."
+    ) from err
 
 
 class Config:
     config: dict[str, Any]
     config_path = "config/generate.yaml"
-    default_values: dict[str, str | int | bool] = {
+    default_values: ClassVar[dict[str, str | bool]] = {
         "containers_folder": "containers",
         "composes_folder": "composes",
         "network_name": "cloud",
@@ -207,24 +209,24 @@ def main() -> None:
     gateway = subnet.rsplit(".", 1)[0] + ".1"
     output = str(config["output"])
 
-    main_template = yaml.safe_load(
-        open("src/composekit/templates/main-compose.yaml")
-        .read()
-        .lstrip()
-        .format(
-            network=network,
-            driver=network_driver,
-            subnet=subnet,
-            gateway=gateway,
+    with open("src/composekit/templates/main-compose.yaml") as file:
+        main_template = yaml.safe_load(
+            file.read()
+            .lstrip()
+            .format(
+                network=network,
+                driver=network_driver,
+                subnet=subnet,
+                gateway=gateway,
+            )
         )
-    )
-    main_template["services"] = {}
-    composes_template = (
-        open("src/composekit/templates/composes.yaml").read().lstrip()
-    )
-    service_template = (
-        open("src/composekit/templates/services.yaml").read().lstrip()
-    )
+        main_template["services"] = {}
+
+    with open("src/composekit/templates/composes.yaml") as file:
+        composes_template = file.read().lstrip()
+
+    with open("src/composekit/templates/services.yaml") as file:
+        service_template = file.read().lstrip()
 
     if os.path.exists(composes_folder):
         shutil.rmtree(composes_folder)
