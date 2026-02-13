@@ -5,8 +5,8 @@ import re
 import sys
 import asyncio
 import logging
-from typing import Any
 from pathlib import Path
+from typing import Any, ClassVar
 from composekit.utils.oci_api import list_tags
 
 try:
@@ -14,8 +14,10 @@ try:
     import yaml
     from git import Repo
     from packaging.version import InvalidVersion, Version
-except ImportError:
-    raise RuntimeError("ERROR: Missing required packages. See the README.")
+except ImportError as err:
+    raise RuntimeError(
+        "ERROR: Missing required packages. See the README."
+    ) from err
 
 logging.basicConfig(
     stream=sys.stdout, format="%(levelname)s: %(message)s", level=logging.INFO
@@ -25,8 +27,8 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 class Config:
     config: dict[str, Any]
-    config_paths = ["config/update.yaml", "config/update.private.yaml"]
-    default_values: dict[str, str | int | bool] = {
+    config_paths = ("config/update.yaml", "config/update.private.yaml")
+    default_values: ClassVar[dict[str, Any]] = {
         "containers_folder": "containers",
         "limit": 40,
         "timeout": 10,
