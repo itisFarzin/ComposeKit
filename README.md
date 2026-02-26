@@ -23,11 +23,11 @@ uv pip install -e .
 ```
 - And finally, run one of the commands based on your needs:
 ```bash
-uv run python -m composekit.generate
+uv run generate
 ```
 - or
 ```bash
-uv run python -m composekit.update
+uv run update
 ```
 
 ## License
