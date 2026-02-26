@@ -46,7 +46,7 @@ wheels = [
 [[package]]
 name = "composekit"
 version = "1.0.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "gitpython" },
     { name = "httpx" },

@@ -26,6 +26,13 @@ dev = [
   "ruff>=0.14.14",
 ]
 
+[project.scripts]
+update = "composekit.update:main"
+generate = "composekit.generate:main"
+
+[tool.uv]
+package = true
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 pythonpath = ["src"]

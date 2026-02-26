@@ -51,7 +51,7 @@ jobs:
         run: uv pip install -e .
 
       - name: Run Python script
-        run: uv run python -m composekit.update
+        run: uv run update
         env:
           CONTAINERS_FOLDER: ${{ vars.CONTAINERS_FOLDER }}
           COMPOSES_FOLDER: ${{ vars.COMPOSES_FOLDER }}
