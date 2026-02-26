@@ -227,29 +227,32 @@ async def process_file(
         logging.info(f"{full_image}: Updated to {newest_version}.")
 
 
-async def main() -> None:
-    config = Config()
-    repo = Repo(".")
-    # Discard any changes
-    repo.index.reset(working_tree=True)
-    git_lock = asyncio.Lock()
+def main() -> None:
+    async def process() -> None:
+        config = Config()
+        repo = Repo(".")
+        # Discard any changes
+        repo.index.reset(working_tree=True)
+        git_lock = asyncio.Lock()
 
-    containers_folder = str(config["containers_folder"])
+        containers_folder = str(config["containers_folder"])
 
-    paths = (
-        p
-        for p in Path(containers_folder).iterdir()
-        if p.is_file() and p.suffix in {".yml", ".yaml"}
-    )
-
-    async with httpx.AsyncClient(timeout=int(config["timeout"])) as client:
-        await asyncio.gather(
-            *(
-                process_file(path, client, config, repo, git_lock)
-                for path in paths
-            )
+        paths = (
+            p
+            for p in Path(containers_folder).iterdir()
+            if p.is_file() and p.suffix in {".yml", ".yaml"}
         )
+
+        async with httpx.AsyncClient(timeout=int(config["timeout"])) as client:
+            await asyncio.gather(
+                *(
+                    process_file(path, client, config, repo, git_lock)
+                    for path in paths
+                )
+            )
+
+    asyncio.run(process())
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
