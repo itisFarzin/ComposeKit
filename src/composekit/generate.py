@@ -43,6 +43,9 @@ class Config:
 
 
 OPTIONS = (
+    "folder",
+    "name",
+    "image",
     "network",
     "working_dir",
     "command",
@@ -164,14 +167,14 @@ def generate(
 
     used_volumes: list[str] = []
     result = {
-        "image": container["image"],
+        "image": container.pop("image"),
         "hostname": name,
         "container_name": name,
         "restart": container.get("restart", restart_policy),
     }
 
     for option in OPTIONS:
-        if option not in container:
+        if option not in container or option in ("folder", "name"):
             continue
 
         value = container[option]
