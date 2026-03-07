@@ -116,8 +116,8 @@ type = "list"
 name = "change_type"
 message = "Select the type of change you are committing"
 choices = [
-  { value = "fix", name = "fix: A bug fix. Correlates with PATCH in SemVer" },
-  { value = "feat", name = "feat: A new feature. Correlates with MINOR in SemVer" },
+  { value = "fix", name = "fix: A bug fix" },
+  { value = "feat", name = "feat: A new feature" },
   { value = "refactor", name = "refactor: A code change that neither fixes a bug nor adds a feature" },
   { value = "chore", name = "chore: Other changes that don't modify src or test files" },
   { value = "style", name = "style: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)" },
@@ -145,7 +145,7 @@ message = "Provide additional contextual information about the code changes:"
 [[tool.commitizen.customize.questions]]
 type = "confirm"
 name = "breaking"
-message = "Is this a BREAKING CHANGE? Correlates with MAJOR in SemVer"
+message = "Is this a BREAKING CHANGE?"
 default = false
 
 [[tool.commitizen.customize.questions]]
