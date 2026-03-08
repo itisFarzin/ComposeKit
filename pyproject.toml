@@ -27,6 +27,7 @@ dev = [
 ]
 
 [project.scripts]
+sort = "composekit.sort:main"
 update = "composekit.update:main"
 generate = "composekit.generate:main"
 

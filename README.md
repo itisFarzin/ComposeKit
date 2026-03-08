@@ -2,9 +2,10 @@
 
 A project to simplify Docker container management, made with love.
 
-This project includes two commands:
-- generate: creates Docker Compose files
+This project includes three commands:
+- sort: sorts keys in Docker Compose files
 - update: updates Docker images
+- generate: creates Docker Compose files
 
 Key points:
 - Generation rules: [config/generate.yaml](config/generate.yaml)
@@ -23,11 +24,9 @@ uv pip install -e .
 ```
 - And finally, run one of the commands based on your needs:
 ```bash
-uv run generate
-```
-- or
-```bash
+uv run sort
 uv run update
+uv run generate
 ```
 
 ## License
