@@ -102,15 +102,10 @@ def is_custom_bind(volume: str) -> bool:
 
 def handle_volumes(
     config: Config,
-    container: dict[str, Any],
-    name: str,
+    folder: str,
     volumes: list[str],
     used_volumes: list[str],
 ) -> list[str]:
-    folder = str(container.get("folder", name))
-    if config["capitalize_folder_name"]:
-        folder = capitalize_name(folder)
-
     bind_path = str(config["bind_path"])
     use_full_directory = bool(config["use_full_directory"])
     custom_binds = list(filter(is_custom_bind, volumes))
@@ -186,7 +181,7 @@ def generate(
                 result[option] = duplicate_entries(value)
             case "volumes":
                 result[option] = handle_volumes(
-                    config, container, name, value, used_volumes
+                    config, folder, value, used_volumes
                 )
             case _:
                 result[option] = value
