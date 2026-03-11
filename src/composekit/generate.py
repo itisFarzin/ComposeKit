@@ -84,6 +84,16 @@ MOUNT_OPTIONS = {
 }
 
 
+def get_folder_name(
+    name: str, container: dict[str, Any], config: Config
+) -> str:
+    folder = str(container.get("folder", name))
+    if config["capitalize_folder_name"]:
+        folder = capitalize_name(folder)
+
+    return folder
+
+
 def capitalize_name(name: str) -> str:
     return name[0].upper() + name[1:]
 
@@ -153,9 +163,7 @@ def duplicate_entries(entries: list[str]) -> list[str]:
 def generate(
     name: str, container: dict[str, Any], config: Config
 ) -> dict[str, Any]:
-    folder = str(container.get("folder", name))
-    if config["capitalize_folder_name"]:
-        folder = capitalize_name(folder)
+    folder = get_folder_name(name, container, config)
 
     restart_policy = str(config["restart_policy"])
     network = str(config["network_name"])

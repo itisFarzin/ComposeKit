@@ -2,6 +2,7 @@ from typing import Any
 from unittest.mock import MagicMock
 from composekit.generate import (
     Config,
+    get_folder_name,
     is_custom_bind,
     handle_volumes,
     duplicate_entries,
@@ -52,7 +53,8 @@ def test_handle_volumes_with_mount_options_and_custom_name() -> None:
     config = make_mock_config()
     volumes = ["/volume:ro;config", "/volume2:rw;data"]
     container: dict[str, Any] = {}
-    result = handle_volumes(config, container, "container", volumes, [])
+    folder = get_folder_name("container", container, config)
+    result = handle_volumes(config, folder, volumes, [])
     assert result == [
         "/bind/container/config:/volume:ro",
         "/bind/container/data:/volume2:rw",
