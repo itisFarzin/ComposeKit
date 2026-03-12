@@ -34,6 +34,9 @@ class Config:
         with open(self.config_path, "r") as file:
             self.config = yaml.safe_load(file)
 
+    def __setitem__(self, key: str, value: Any) -> None:
+        self.config[key] = value
+
     def __getitem__(self, key: str) -> Any:
         return (
             os.getenv(key.upper())
