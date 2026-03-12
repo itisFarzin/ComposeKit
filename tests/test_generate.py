@@ -33,7 +33,8 @@ def test_handle_volumes_basic() -> None:
     config = make_mock_config()
     volumes = ["/volume", "/volume2"]
     container: dict[str, Any] = {}
-    result = handle_volumes(config, container, "container", volumes, [])
+    folder = get_folder_name("container", container, config)
+    result = handle_volumes(config, folder, volumes, [])
     expected = [
         "/bind/container/volume:/volume",
         "/bind/container/volume2:/volume2",
@@ -45,7 +46,8 @@ def test_handle_volumes_with_custom_binds() -> None:
     config = make_mock_config()
     volumes = ["/volume:/volume", "/volume2:/volume2"]
     container: dict[str, Any] = {}
-    result = handle_volumes(config, container, "container", volumes, [])
+    folder = get_folder_name("container", container, config)
+    result = handle_volumes(config, folder, volumes, [])
     assert result == ["/volume:/volume", "/volume2:/volume2"]
 
 
