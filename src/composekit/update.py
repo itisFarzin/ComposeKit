@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 
-import os
 import re
 import sys
 import asyncio
 import logging
 from pathlib import Path
 from typing import Any, ClassVar
-from composekit.utils.oci_api import list_tags
 
 try:
     import httpx
     import yaml
     from git import Repo
+    from composekit.utils.oci_api import list_tags
+    from composekit.utils.config import Config as _Config
     from packaging.version import InvalidVersion, Version
 except ImportError as err:
     raise RuntimeError(
@@ -25,36 +25,13 @@ logging.basicConfig(
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
-class Config:
-    config: dict[str, Any]
+class Config(_Config):
     config_paths = ("config/update.yaml", "config/update.private.yaml")
-    default_values: ClassVar[dict[str, Any]] = {
+    default_values: ClassVar[dict[str, str | int]] = {
         "containers_folder": "containers",
         "limit": 40,
         "timeout": 10,
     }
-
-    def __init__(self) -> None:
-        self.config = {}
-        for config_path in self.config_paths:
-            self._load_config(config_path)
-
-    def _load_config(self, file_path: str) -> None:
-        if not os.path.exists(file_path):
-            return
-
-        with open(file_path, "r") as file:
-            self.config.update(yaml.safe_load(file) or {})
-
-    def __setitem__(self, key: str, value: Any) -> None:
-        self.config[key] = value
-
-    def __getitem__(self, key: str) -> Any:
-        return (
-            os.getenv(key.upper())
-            or self.config.get(key.lower())
-            or self.default_values.get(key)
-        )
 
 
 def extract_version(version: str, pattern: str | None) -> str | None:
