@@ -29,6 +29,7 @@ class Config(_Config):
     config_paths = ("config/update.yaml", "config/update.private.yaml")
     default_values: ClassVar[dict[str, str | int]] = {
         "containers_folder": "containers",
+        "default_registry": "docker.io",
         "limit": 40,
         "timeout": 10,
     }
@@ -123,6 +124,7 @@ async def update(
 
     registry, user, image, version = result
     full_image = "/".join(filter(None, [registry, user, image]))
+    registry = registry or str(config["default_registry"])
 
     container = next(
         (
