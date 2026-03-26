@@ -225,7 +225,9 @@ def main() -> None:
             if p.is_file() and p.suffix in {".yml", ".yaml"}
         )
 
-        async with httpx.AsyncClient(timeout=int(config["timeout"])) as client:
+        async with httpx.AsyncClient(
+            timeout=int(config["timeout"]), follow_redirects=True
+        ) as client:
             await asyncio.gather(
                 *(
                     process_file(path, client, config, repo, git_lock)
