@@ -114,6 +114,7 @@ async def test_find_versions_mocked() -> None:
 async def test_update_new_version() -> None:
     config = MagicMock()
     config.__getitem__.side_effect = lambda key: {
+        "default_registry": "docker.io",
         "limit": 10,
         "timeout": 5,
         "user/image": {"update": True},
@@ -137,6 +138,7 @@ async def test_update_new_version() -> None:
 async def test_update_disabled() -> None:
     config = MagicMock()
     config.__getitem__.side_effect = lambda key: {
+        "default_registry": "docker.io",
         "limit": 10,
         "timeout": 5,
         "user/image": {"update": False},
