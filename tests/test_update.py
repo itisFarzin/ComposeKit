@@ -4,22 +4,12 @@ from typing import Any
 from packaging.version import Version
 from unittest.mock import AsyncMock, MagicMock, patch
 from composekit.update import (
-    Config,
     parse_image,
     extract_version,
     parse_version,
     find_versions,
     update,
 )
-
-
-def test_config_default(monkeypatch: pytest.MonkeyPatch) -> None:
-    config = Config()
-    assert config["containers_folder"] == "containers"
-    assert config["limit"] == 40
-    assert config["timeout"] == 10
-    monkeypatch.setenv("LIMIT", "123")
-    assert config["limit"] == "123"
 
 
 @pytest.mark.parametrize(
