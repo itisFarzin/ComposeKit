@@ -11,7 +11,11 @@ async def list_tags(
     if not registry_host or registry_host == "docker.io":
         registry_host = "index.docker.io"
 
-    base = f"https://{registry_host}"
+    base = (
+        f"https://{registry_host}"
+        if not registry_host.startswith(("http://", "https://"))
+        else registry_host
+    )
     url = f"{base}/v2/{repo}/tags/list"
 
     auth = (
