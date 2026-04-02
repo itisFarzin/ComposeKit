@@ -93,7 +93,7 @@ async def find_versions(
     user: str | None,
     image: str,
 ) -> list[str]:
-    limit = int(config["limit"])
+    limit = int(container.get("limit", config["limit"]))
     full_image = "/".join(filter(None, [registry, user, image]))
 
     try:
