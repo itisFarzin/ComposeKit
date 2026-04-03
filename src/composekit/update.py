@@ -46,9 +46,9 @@ def extract_version(version: str, pattern: str | None) -> str | None:
     return None
 
 
-def parse_image(image: str) -> tuple[str | None, str, str, str] | None:
+def parse_image(image: str) -> tuple[str | None, str | None, str, str] | None:
     registry = None
-    user = "_"
+    user = None
     version_segments = image.split(":")
     version = version_segments.pop() if len(version_segments) > 1 else "latest"
     image = version_segments[0]
@@ -97,7 +97,7 @@ async def find_versions(
     full_image = "/".join(filter(None, [registry, user, image]))
 
     try:
-        user = "library" if user == "_" else user
+        user = "library" if user is None else user
         if tags := await list_tags(
             client,
             registry,

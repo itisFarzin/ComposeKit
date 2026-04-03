@@ -15,7 +15,7 @@ from composekit.update import (
 @pytest.mark.parametrize(
     "image,registry,user,name,version",
     [
-        ("nginx", None, "_", "nginx", "latest"),
+        ("nginx", None, None, "nginx", "latest"),
         ("user/nginx", None, "user", "nginx", "latest"),
         (
             "registry.com/user/nginx:1.2.3",
@@ -28,7 +28,7 @@ from composekit.update import (
     ],
 )
 def test_parse_image(
-    image: str, registry: str, user: str, name: str, version: str
+    image: str, registry: str, user: str | None, name: str, version: str
 ) -> None:
     result = parse_image(image)
     assert result is not None
