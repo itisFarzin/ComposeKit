@@ -87,7 +87,10 @@ def capitalize_name(name: str) -> str:
     return name[0].upper() + name[1:]
 
 
-def is_custom_bind(volume: str) -> bool:
+def is_custom_bind(volume: str | dict) -> bool:
+    if isinstance(volume, dict):
+        return True
+
     volume_segments = volume.split(":")
     if len(volume_segments) == 1:
         return True
@@ -102,7 +105,7 @@ def is_custom_bind(volume: str) -> bool:
 def handle_volumes(
     config: Config,
     folder: str,
-    volumes: list[str],
+    volumes: list[str | dict],
     used_volumes: list[str],
 ) -> list[str]:
     bind_path = str(config["bind_path"])
@@ -111,6 +114,10 @@ def handle_volumes(
     result = []
 
     for volume in volumes:
+        if isinstance(volume, dict):
+            result.append(volume)
+            continue
+
         custom_name = ""
         if ";" in volume:
             volume, custom_name = volume.split(";", 1)
