@@ -3,7 +3,7 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Sequence
 
 try:
     import yaml
@@ -87,7 +87,7 @@ def capitalize_name(name: str) -> str:
     return name[0].upper() + name[1:]
 
 
-def is_custom_bind(volume: str | dict) -> bool:
+def is_custom_bind(volume: str | dict[str, Any]) -> bool:
     if isinstance(volume, dict):
         return True
 
@@ -105,13 +105,13 @@ def is_custom_bind(volume: str | dict) -> bool:
 def handle_volumes(
     config: Config,
     folder: str,
-    volumes: list[str | dict],
+    volumes: Sequence[str | dict[str, Any]],
     used_volumes: list[str],
-) -> list[str]:
+) -> list[str | dict[str, Any]]:
     bind_path = str(config["bind_path"])
     use_full_directory = bool(config["use_full_directory"])
     custom_binds = list(filter(is_custom_bind, volumes))
-    result = []
+    result: list[str | dict[str, Any]] = []
 
     for volume in volumes:
         if isinstance(volume, dict):
