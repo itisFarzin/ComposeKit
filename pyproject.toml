@@ -12,7 +12,7 @@ requires-python = ">=3.10"
 dependencies = [
   "GitPython>=3.1.46",
   "PyYAML>=6.0.3",
-  "httpx>=0.28.1",
+  "httpx[socks]>=0.28.1",
   "packaging>=25.0",
 ]
 
