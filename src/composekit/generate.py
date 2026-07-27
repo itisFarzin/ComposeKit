@@ -265,9 +265,9 @@ def main(args: argparse.Namespace) -> None:
 
     if args.commit:
         repo = open_repo(reset=False)
-        repo.git.add(".")
-        staged_count = len(repo.index.diff(repo.head.commit))
+        repo.add(".")
+        staged_count = repo.staged_count()
         if staged_count > 0:
-            repo.index.commit(
+            repo.commit(
                 f"chore(composes): update {staged_count} compose file(s)"
             )
