@@ -17,11 +17,11 @@ and config files you can copy and adapt:
 
 Install directly from the repository with [uv](https://docs.astral.sh/uv):
 ```bash
-uv tool install git+https://github.com/itisFarzin/ComposeKit
+uv tool install git+https://github.com/6AMStuff/ComposeKit
 ```
 or with [pipx](https://pipx.pypa.io/):
 ```bash
-pipx install git+https://github.com/itisFarzin/ComposeKit
+pipx install git+https://github.com/6AMStuff/ComposeKit
 ```
 
 Pin a release by appending `@<tag>`, e.g. `@v1.0.0`.
