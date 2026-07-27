@@ -9,9 +9,8 @@ from .generate import Config
 
 try:
     import yaml
-    from git import Repo
 
-    from composekit.utils import iter_container_files, open_repo
+    from composekit.utils import Repository, iter_container_files, open_repo
 except ImportError as err:
     raise RuntimeError(
         "ERROR: Missing required packages. See the README."
@@ -20,7 +19,7 @@ except ImportError as err:
 
 async def process_file(
     path: Path,
-    repo: Repo | None,
+    repo: Repository | None,
     git_lock: asyncio.Lock,
 ) -> None:
     with open(path) as file:
@@ -41,8 +40,8 @@ async def process_file(
                 yaml.dump_all(sorted_containers, file, sort_keys=False)
 
             if repo is not None:
-                repo.index.add(path)
-                repo.index.commit(f"chore({path.stem}): sort keys")
+                repo.add(path)
+                repo.commit(f"chore({path.stem}): sort keys")
 
 
 def main(args: argparse.Namespace) -> None:
