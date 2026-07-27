@@ -14,14 +14,11 @@ GIT: str = _git
 class Repository:
     root: Path
 
-    def _run(self, *args: str, capture_output: bool = False) -> str:
-        result = subprocess.run(  # noqa: S603
-            (GIT, "-C", self.root, *args),
-            check=True,
-            stdout=subprocess.PIPE if capture_output else subprocess.DEVNULL,
-            text=True,
+    def _run(self, *args: str) -> str:
+        result = subprocess.check_output(  # noqa: S603
+            [GIT, "-C", self.root, *args], text=True
         )
-        return result.stdout or ""
+        return result
 
     def add(self, path: str | Path) -> None:
         self._run("add", "--", str(path))
@@ -33,20 +30,16 @@ class Repository:
         self._run("reset", "--hard", "HEAD")
 
     def staged_count(self) -> int:
-        output = self._run(
-            "diff", "--cached", "--name-only", "-z", capture_output=True
-        )
+        output = self._run("diff", "--cached", "--name-only", "-z")
         return len([path for path in output.split("\0") if path])
 
 
 def open_repo(reset: bool = True) -> Repository:
-    result = subprocess.run(  # noqa: S603
-        (GIT, "rev-parse", "--show-toplevel"),
-        check=True,
-        capture_output=True,
+    result = subprocess.check_output(  # noqa: S603
+        [GIT, "rev-parse", "--show-toplevel"],
         text=True,
     )
-    repo = Repository(Path(result.stdout.strip()))
+    repo = Repository(Path(result.strip()))
     if reset:
         repo.reset()
 
