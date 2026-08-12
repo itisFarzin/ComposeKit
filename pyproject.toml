@@ -10,10 +10,10 @@ authors = [
 requires-python = ">=3.10"
 
 dependencies = [
-  "gitpython>=3.1.57",
+  "gitpython>=3.1.58",
   "pyyaml>=6.0.3",
   "httpx[socks]>=0.28.1",
-  "packaging>=26.2",
+  "packaging>=26.3",
 ]
 
 [project.optional-dependencies]
@@ -21,8 +21,8 @@ dev = [
   "pytest>=9.1.1",
   "pytest-sugar>=1.1.1",
   "pytest-asyncio>=1.4.0",
-  "ruff>=0.16.0",
-  "pyrefly>=1.1.1",
+  "ruff>=0.16.1",
+  "pyrefly>=1.2.0",
   "types-pyyaml>=6.0.12.20260724",
 ]
 
