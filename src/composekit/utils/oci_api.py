@@ -20,18 +20,18 @@ async def _list_tags_with_bearer_auth(
         params[k.strip()] = v.strip().strip('"')
 
     realm = params.pop("realm", None)
-    if not realm:
+    if not isinstance(realm, str):
         return []
 
     request = await client.get(realm, params=params, auth=auth)
-    request.raise_for_status()
-    token_json = request.json()
-    token = token_json.get("token") or token_json.get("access_token")
-    if not token:
+    _ = request.raise_for_status()
+    token_json: dict[str, str] = request.json()
+    token = token_json.get("token", token_json.get("access_token"))
+    if not isinstance(token, str):
         raise RuntimeError("Token endpoint returned no token")
 
     r = await client.get(url, headers={"Authorization": f"Bearer {token}"})
-    r.raise_for_status()
+    _ = r.raise_for_status()
     return r.json().get("tags", []) or []
 
 
@@ -42,7 +42,7 @@ async def list_tags(
     username: str | None = None,
     password: str | None = None,
 ) -> list[str]:
-    if not registry_host or registry_host == "docker.io":
+    if registry_host in (None, "", "docker.io"):
         registry_host = "index.docker.io"
 
     base = (
@@ -65,5 +65,5 @@ async def list_tags(
         www = r.headers.get("WWW-Authenticate", "")
         return await _list_tags_with_bearer_auth(client, url, www, auth)
 
-    r.raise_for_status()
+    _ = r.raise_for_status()
     return []

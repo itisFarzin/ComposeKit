@@ -20,14 +20,17 @@ from composekit.generate import (
 
 
 def make_mock_config(bind_path: str = "/bind") -> Config:
+    def get_config(key: str) -> object:
+        return {
+            "bind_path": bind_path,
+            "use_full_directory": True,
+            "capitalize_folder_name": False,
+            "restart_policy": "unless-stopped",
+            "network_name": "cloud",
+        }[key]
+
     config = MagicMock(spec=Config)
-    config.__getitem__.side_effect = lambda key: {
-        "bind_path": bind_path,
-        "use_full_directory": True,
-        "capitalize_folder_name": False,
-        "restart_policy": "unless-stopped",
-        "network_name": "cloud",
-    }[key]
+    config.__getitem__.side_effect = get_config
     return config
 
 
@@ -97,7 +100,7 @@ class TestGenerate(unittest.TestCase):
             composes = root / "composes"
             output = root / "docker-compose.yaml"
             containers.mkdir()
-            (containers / "container.yaml").write_text(
+            _ = (containers / "container.yaml").write_text(
                 "image: nginx\n---\nimage: redis\n"
             )
 
@@ -111,7 +114,9 @@ class TestGenerate(unittest.TestCase):
 
             main(args)
 
-            compose = yaml.safe_load((composes / "container.yaml").read_text())
+            compose: dict[str, dict[str, object]] = yaml.safe_load(
+                (composes / "container.yaml").read_text()
+            )
             self.assertEqual(
                 list(compose["services"].keys()), ["container", "container_2"]
             )

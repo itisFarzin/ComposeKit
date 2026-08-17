@@ -5,6 +5,7 @@ import asyncio
 import logging
 import re
 import sys
+from operator import itemgetter
 from pathlib import Path
 from typing import ClassVar
 
@@ -39,11 +40,11 @@ class Config(_Config):
 
 
 def extract_version(version: str, pattern: str | None) -> str | None:
-    if not pattern:
+    if pattern is None:
         return version
 
     match = re.search(pattern, version)
-    if match and match.groups():
+    if match is not None and len(match.groups()) > 0:
         return match.group(1)
 
     return None
@@ -75,7 +76,7 @@ def parse_image(image: str) -> tuple[str | None, str | None, str, str] | None:
 
 
 def parse_version(version: str | None) -> Version | None:
-    if not version:
+    if version is None:
         return None
 
     try:
@@ -111,7 +112,7 @@ async def find_versions(
     user: str | None,
     image: str,
 ) -> list[str]:
-    limit_config = options.get("limit") or config["limit"]
+    limit_config = options.get("limit", config["limit"])
     limit = (
         limit_config
         if isinstance(limit_config, int)
@@ -125,16 +126,17 @@ async def find_versions(
         user = "library" if user is None else user
         username = options.get("username")
         password = options.get("password")
-        if tags := await list_tags(
+        tags = await list_tags(
             client,
             registry,
             f"{user}/{image}",
             username if isinstance(username, str) else None,
             password if isinstance(password, str) else None,
-        ):
-            return tags[-limit:]
+        )
+        if len(tags) == 0:
+            raise Exception("No tags found.")
 
-        raise Exception("No tags found.")
+        return tags[-limit:]
     except Exception as e:
         logging.error(f"{full_image}: {e}")
 
@@ -146,12 +148,14 @@ async def update(
     container: Container,
     client: httpx.AsyncClient,
 ) -> tuple[str, str, str] | None:
-    if not (result := parse_image(container.image)):
+    result = parse_image(container.image)
+    if result is None:
         return None
 
     registry, user, image, version = result
     full_image = "/".join(filter(None, [registry, user, image]))
-    registry = registry or str(config["default_registry"])
+    if registry in (None, ""):
+        registry = str(config["default_registry"])
 
     options = get_update_options(config, full_image, user, image)
 
@@ -164,35 +168,33 @@ async def update(
         version_regex_config if isinstance(version_regex_config, str) else None
     )
 
-    if not (
+    if not isinstance(
         current_version := parse_version(
             extract_version(version, version_regex)
-        )
+        ),
+        Version,
     ):
         logging.error(
             f"{full_image}: Could not parse the version '{version}'."
         )
         return None
 
-    if not (
-        raw_versions := await find_versions(
-            config, options, client, registry, user, image
-        )
-    ):
-        return None
+    raw_versions = await find_versions(
+        config, options, client, registry, user, image
+    )
 
-    versions = [
+    versions: list[tuple[Version, str]] = [
         (v, version)
         for version in raw_versions
-        if (v := parse_version(extract_version(version, version_regex)))
+        if isinstance(
+            v := parse_version(extract_version(version, version_regex)),
+            Version,
+        )
         and v > current_version
     ]
 
-    if not versions:
-        return None
-
-    newest_version = max(versions, key=lambda p: p[0], default=(None, None))[1]
-    if not newest_version:
+    newest_version = max(versions, key=itemgetter(0), default=(None, None))[1]
+    if newest_version is None:
         return None
 
     return full_image, image, newest_version
@@ -209,7 +211,8 @@ async def process_file(
         containers = load_containers(yaml.safe_load_all(file))
 
     for container in containers:
-        if not (result := await update(config, container, client)):
+        result = await update(config, container, client)
+        if result is None:
             continue
 
         full_image, image, newest_version = result
@@ -224,8 +227,8 @@ async def process_file(
                 )
 
             if repo is not None:
-                repo.index.add(path)
-                repo.index.commit(
+                _ = repo.index.add(path)
+                _ = repo.index.commit(
                     f"chore({path.stem}): update {image} to {newest_version}"
                 )
 

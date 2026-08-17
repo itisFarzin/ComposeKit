@@ -53,9 +53,12 @@ MOUNT_OPTIONS = {
 
 
 def get_folder_name(name: str, container: Container, config: Config) -> str:
-    folder = container.folder or name
+    folder = name
+    if isinstance(container.folder, str):
+        folder = container.folder
+
     mode = config["capitalize_folder_name"]
-    if mode == "full" or (mode == "non_custom" and not container.folder):
+    if mode == "full" or (mode == "non_custom" and container.folder is None):
         folder = capitalize_name(folder)
 
     return folder
@@ -109,7 +112,11 @@ def handle_volumes(
 
         if len(volume_segments) == 1:
             host_path = f"{bind_path}/{folder}"
-            volume_name = custom_name or volume_segments[0].rsplit("/", 1)[-1]
+            volume_name = (
+                volume_segments[0].rsplit("/", 1)[-1]
+                if custom_name == ""
+                else custom_name
+            )
 
             if volume_name in used_volumes:
                 volume_name += str(used_volumes.count(volume_name) + 1)
@@ -119,7 +126,7 @@ def handle_volumes(
 
             volume_segments = [host_path, volume_segments[0]]
 
-        if mount_option:
+        if mount_option is not None:
             volume_segments.append(mount_option)
 
         used_volumes.append(volume_segments[0].rsplit("/", 1)[-1])
@@ -147,7 +154,9 @@ def generate(
         "image": container.image,
         "hostname": name,
         "container_name": name,
-        "restart": container.restart or restart_policy,
+        "restart": (
+            restart_policy if container.restart is None else container.restart
+        ),
     }
 
     for option in Container.fields():
@@ -170,7 +179,7 @@ def generate(
             case _:
                 result[option] = value
 
-    if not container.network_mode:
+    if container.network_mode is None:
         result["networks"] = [network]
 
     return result
@@ -242,11 +251,12 @@ def main(args: argparse.Namespace) -> None:
             containers = load_containers(yaml.safe_load_all(file))
 
         for container in containers:
-            name = container.name or path.stem
+            name = path.stem if container.name is None else container.name
+
             if name in used_names:
                 number = str(used_names.count(name) + 1)
                 container.name = name = f"{name}_{number}"
-                if container.folder:
+                if container.folder is not None:
                     container.folder += number
 
             used_names.append(name)
@@ -268,6 +278,6 @@ def main(args: argparse.Namespace) -> None:
         repo.git.add(".")
         staged_count = len(repo.index.diff(repo.head.commit))
         if staged_count > 0:
-            repo.index.commit(
+            _ = repo.index.commit(
                 f"chore(composes): update {staged_count} compose file(s)"
             )

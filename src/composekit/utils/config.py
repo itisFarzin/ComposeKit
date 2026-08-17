@@ -25,8 +25,11 @@ class Config:
         self.config[key] = value
 
     def __getitem__(self, key: str) -> object | None:
-        return (
-            os.getenv(key.upper())
-            or self.config.get(key.lower())
-            or self.default_values.get(key)
+        sources = (
+            os.getenv(key.upper()),
+            self.config.get(key.lower()),
+            self.default_values.get(key),
         )
+        for value in sources:
+            if value is not None:
+                return value

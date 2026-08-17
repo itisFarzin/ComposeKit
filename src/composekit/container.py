@@ -69,6 +69,7 @@ def load_containers(documents: Iterable[object]) -> list[Container]:
 
         data: dict[str, object] = {}
         for key, value in document.items():
+            value: str | list[str]
             if not isinstance(key, str):
                 raise TypeError("container keys must be strings")
 

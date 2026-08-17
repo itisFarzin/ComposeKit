@@ -41,8 +41,8 @@ async def process_file(
                 yaml.dump_all(sorted_containers, file, sort_keys=False)
 
             if repo is not None:
-                repo.index.add(path)
-                repo.index.commit(f"chore({path.stem}): sort keys")
+                _ = repo.index.add(path)
+                _ = repo.index.commit(f"chore({path.stem}): sort keys")
 
 
 def main(args: argparse.Namespace) -> None:

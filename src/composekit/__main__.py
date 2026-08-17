@@ -6,18 +6,18 @@ from composekit import generate, sort, update
 
 
 def _add_common(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument(
+    _ = parser.add_argument(
         "-C",
         "--containers",
         help="Folder containing container definitions.",
     )
-    parser.add_argument(
+    _ = parser.add_argument(
         "-c",
         "--config",
         action="append",
         help="Config file(s) to load (repeatable).",
     )
-    parser.add_argument(
+    _ = parser.add_argument(
         "--commit",
         action="store_true",
         help="Commit the resulting changes to the git repository.",
@@ -32,10 +32,10 @@ def build_parser() -> argparse.ArgumentParser:
         "generate", help="Create Docker Compose files."
     )
     _add_common(gen)
-    gen.add_argument(
+    _ = gen.add_argument(
         "-o", "--composes", help="Folder to write per-service composes into."
     )
-    gen.add_argument(
+    _ = gen.add_argument(
         "--output", help="Path of the aggregated main compose file."
     )
     gen.set_defaults(func=generate.main)
